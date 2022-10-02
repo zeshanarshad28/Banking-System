@@ -65,26 +65,21 @@ router.patch(
   authControllers.restrictTo("admin"),
   userControllers.makeUserLibrarian
 );
-// buy membership
-router.get(
-  "/buyMembership",
-  authControllers.protect,
-  userMembershipControllers.getCheckoutSession
-);
-// Payment fail
-router.patch("/paymentFail", userControllers.paymentFail);
-// make me member
-router.get("/makeMeMember/:id", userControllers.makeMeMember);
+
+// // Payment fail
+// router.patch("/paymentFail", userControllers.paymentFail);
+// // make me member
+// router.get("/makeMeMember/:id", userControllers.makeMeMember);
 
 router.use(authControllers.protect);
 router.use(authControllers.restrictTo("admin")); // This midlware will only allow admin to use below all routes.
 router.get("/getAllUsers", userControllers.getAllUsers);
-// buy membership
-router.get(
-  "/payFine",
-  authControllers.protect,
-  authControllers.protect,
-  fineControllers.payFine
-);
+// // buy membership
+// router.get(
+//   "/payFine",
+//   authControllers.protect,
+//   authControllers.protect,
+//   fineControllers.payFine
+// );
 
 module.exports = router;

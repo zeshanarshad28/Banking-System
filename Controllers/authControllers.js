@@ -37,9 +37,12 @@ exports.signup = catchAsync(async (req, res, next) => {
   const newUser = await User.create({
     name: req.body.name,
     email: req.body.email,
-    password: req.body.confirmPassword,
+    password: req.body.password,
+    confirmPassword: req.body.confirmPassword,
+
     passwordChangedAt: req.body.passwordChangedAt,
   });
+  console.log(process.env.NODE_ENV);
   const url = `${req.protocol}://${req.get("host")}/me`;
   await new Email(newUser, url).sendWelcome();
   // const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {

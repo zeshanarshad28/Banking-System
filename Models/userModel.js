@@ -37,15 +37,7 @@ const userSchema = new mongoose.Schema(
         message: "Passwords not matched",
       },
     },
-    fine: {
-      type: Number,
-      default: 0,
-    },
-    totalBooksIssued: {
-      type: Number,
-      default: 0,
-      max: [5, "Book issuance limit exceeded"],
-    },
+
     passwordChangedAt: Date,
     passwordResetToken: String,
     passwordResetExpires: Date,
@@ -59,23 +51,13 @@ const userSchema = new mongoose.Schema(
       default: false,
       select: false,
     },
-    member: {
-      type: Boolean,
-      default: false,
-      select: false,
-    },
-
     role: {
       type: String,
       enum: {
-        values: ["member", "user", "librarian", "admin"],
+        values: ["member", "user"],
         message: "Enter valid role ",
       },
       default: "user",
-    },
-    fine: {
-      type: Number,
-      default: 0,
     },
   },
   { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
