@@ -39,10 +39,12 @@ exports.signup = catchAsync(async (req, res, next) => {
     email: req.body.email,
     password: req.body.password,
     confirmPassword: req.body.confirmPassword,
+    CNICNo: req.body.CNICNo,
+    phoneNo: req.body.phoneNo,
 
     passwordChangedAt: req.body.passwordChangedAt,
   });
-  console.log(process.env.NODE_ENV);
+
   const url = `${req.protocol}://${req.get("host")}/me`;
   await new Email(newUser, url).sendWelcome();
   // const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
@@ -60,6 +62,7 @@ exports.login = catchAsync(async (req, res, next) => {
   }
   // check if user exist and password is correct
   const user = await User.findOne({ email }).select("+password");
+
   if (!user || !(await user.correctPassword(password, user.password))) {
     return next(new AppErr("Incorrect email or password", 401));
   }
@@ -154,7 +157,10 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
     //   subject: "your password reset token is valid for 1o minutes",
     //   message,
     // });
-    await new Email(user, resetURL).sendPasswordReset();
+    await new Email(user, resetURL).sendPasswordReset(
+      "Passord reset token!!!",
+      message
+    );
     res.status(200).json({
       status: "success",
       message: "Token sent to email",

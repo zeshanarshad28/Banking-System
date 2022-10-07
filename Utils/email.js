@@ -35,7 +35,7 @@ module.exports = class Email {
       },
     });
   }
-  async send(template, subject) {
+  async send(subject, template) {
     // console.log(this.from);
     // console.log(this.to);
     // console.log(process.env.EMAIL_USERNAME);
@@ -46,7 +46,7 @@ module.exports = class Email {
       from: this.from,
       to: this.to,
       subject,
-      text: "Thanks!",
+      text: template,
     };
     // 3)Creat a transport and send email
 
@@ -56,10 +56,7 @@ module.exports = class Email {
     await this.send("Welcome", "Welcome to Magnus Mage");
   }
 
-  async sendPasswordReset() {
-    await this.send(
-      "Password Reset",
-      "Your password reset token ! ( valid for 10 minutes)"
-    );
+  async sendPasswordReset(a, b) {
+    await this.send(a, b);
   }
 };

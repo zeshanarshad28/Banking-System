@@ -1,13 +1,40 @@
-const User = require("../models/userModel");
 const multer = require("multer");
 const sharp = require("sharp");
-const AppErr = require("../utils/appError");
-const catchAsync = require("../utils/catchAsync");
-const handlersFactory = require("./handlersFactory");
-const { promisify } = require("util");
-const { trusted } = require("mongoose");
-const { findById } = require("../models/userModel");
-const { Console } = require("console");
+const User = require("./../models/userModel");
+const catchAsync = require("./../utils/catchAsync");
+const AppError = require("./../utils/appError");
+const factory = require("./handlersFactory");
+
+const multerStorage = multer.memoryStorage();
+
+const multerFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith("image")) {
+    cb(null, true);
+  } else {
+    cb(new AppError("Not an image! Please upload only images.", 400), false);
+  }
+};
+
+const upload = multer({
+  storage: multerStorage,
+  fileFilter: multerFilter,
+});
+
+exports.uploadUserPhoto = upload.single("photo");
+
+exports.resizeUserPhoto = catchAsync(async (req, res, next) => {
+  if (!req.file) return next();
+
+  req.file.filename = `user-${req.user.id}-${Date.now()}.jpeg`;
+
+  await sharp(req.file.buffer)
+    .resize(500, 500)
+    .toFormat("jpeg")
+    .jpeg({ quality: 90 })
+    .toFile(`public/img/users/${req.file.filename}`);
+
+  next();
+});
 
 const filterObj = (obj, ...allowedFields) => {
   const newObj = {};
@@ -16,175 +43,192 @@ const filterObj = (obj, ...allowedFields) => {
   });
   return newObj;
 };
-// :::::::::::::: MULTER :::::::::::::::::::::::
 
-// multer storage to store image in memory( as a buffer)
-const multerStorage = multer.memoryStorage();
-
-// multer filter to check if the uploaded file is an image or not
-const multerFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith("image")) {
-    cb(null, true);
-  } else {
-    cb(new AppErr("not and image! please upload an image file.", 400));
-  }
-};
-// configuring the multer.
-const upload = multer({
-  storage: multerStorage,
-  fileFilter: multerFilter,
-});
-// uploading the image
-exports.uploadPhoto = upload.single("photo");
-// Re-size user photos
-exports.resizeUserPhoto = catchAsync(async (req, res, next) => {
-  console.log(`req.file is: ${req.file}`);
-  if (!req.file) return next();
-  req.file.filename = `user-${req.user.id}-${Date.now()}.jpeg`;
-  //   console.log(`Resize is working and file name is: ${req.file.filename}`);
-  //   console.log(req.file);
-  //   console.log(req.file.buffer);
-  await sharp(req.file.buffer)
-    .resize(500, 500)
-    .toFormat("jpeg")
-    .jpeg({ quality: 90 })
-    .toFile(`public/img/user/${req.file.filename}.jpeg`);
-  next();
-});
-// Get Me Middlware
 exports.getMe = (req, res, next) => {
   req.params.id = req.user.id;
-  console.log("getMe working");
   next();
 };
-// Getting  user by id
-exports.getUser = handlersFactory.getOne(User);
-// ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-// ======  API for updating already loged in user====================
+
 exports.updateMe = catchAsync(async (req, res, next) => {
-  if (req.body.password || req.body.confirmPassword) {
-    return next(new AppErr("This route is not for update password", 400));
+  // 1) Create error if user POSTs password data
+  if (req.body.password || req.body.passwordConfirm) {
+    return next(
+      new AppError(
+        "This route is not for password updates. Please use /updateMyPassword.",
+        400
+      )
+    );
   }
-  // 2) Update user document
+
+  // 2) Filtered out unwanted fields names that are not allowed to be updated
   const filteredBody = filterObj(req.body, "name", "email");
-  // updating the photo name in db
-  if (req.file) {
-    filteredBody.photo = req.file.filename;
-  }
-  // console.log(`filename::${req.file.filename}`)
-  // console.log(req.user.id);
+  if (req.file) filteredBody.photo = req.file.filename;
+
+  // 3) Update user document
   const updatedUser = await User.findByIdAndUpdate(req.user.id, filteredBody, {
     new: true,
     runValidators: true,
   });
-  console.log(filteredBody);
-  res.status(200).json({
-    status: "success",
-    data: updatedUser,
-  });
-});
-
-//  get all users
-exports.getAllUsers = catchAsync(async (req, res, next) => {
-  const allUsers = await User.aggregate([
-    {
-      $match: {},
-    },
-  ]);
 
   res.status(200).json({
     status: "success",
     data: {
-      allUsers,
+      user: updatedUser,
     },
   });
 });
 
-// Deleting the users====================
 exports.deleteMe = catchAsync(async (req, res, next) => {
   await User.findByIdAndUpdate(req.user.id, { active: false });
+
   res.status(204).json({
     status: "success",
     data: null,
   });
 });
 
-//  Blocking user
+exports.getUser = factory.getOne(User);
+exports.getAllUsers = factory.getAll(User);
+
+// Do NOT update passwords with this!
+exports.updateUser = factory.updateOne(User);
+exports.deleteUser = factory.deleteOne(User);
+// ...................................................
+// Enable two-way Authentication
+exports.turnOnAuth = catchAsync(async (req, res, next) => {
+  await User.findByIdAndUpdate(req.user.id, {
+    twoStepAuthOn: true,
+  });
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      message: "Two step authentication turned On",
+    },
+  });
+});
+// Disable two-way Authentication
+exports.turnOffAuth = catchAsync(async (req, res, next) => {
+  await User.findByIdAndUpdate(req.user.id, {
+    twoStepAuthOn: false,
+  });
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      message: "Two step authentication turned Off !",
+    },
+  });
+});
+// Admin Change the role from user to admin
+exports.makeAdmin = catchAsync(async (req, res, next) => {
+  await User.findByIdAndUpdate(req.params.id, { role: "admin" });
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      message: "Role is changed. Now this user is an admin.",
+    },
+  });
+});
+// Admin Change the role from admin to user
+exports.makeUser = catchAsync(async (req, res, next) => {
+  await User.findByIdAndUpdate(req.params.id, { role: "user" });
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      message: "Role is changed. Now this user is an admin.",
+    },
+  });
+});
+// Restrict to transfer money
+exports.restrictToTransferMoney = catchAsync(async (req, res, next) => {
+  await User.findByIdAndUpdate(req.params.id, { allowedToTransfer: false });
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      message: "User restricted to transfer money",
+    },
+  });
+});
+// Allow to transfer money
+exports.allowToTransferMoney = catchAsync(async (req, res, next) => {
+  await User.findByIdAndUpdate(req.params.id, { allowedToTransfer: true });
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      message: "User allowed to transfer money",
+    },
+  });
+});
+// Restrict to Deposite money
+exports.restrictToDepositeMoney = catchAsync(async (req, res, next) => {
+  await User.findByIdAndUpdate(req.params.id, { allowedToDeposite: false });
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      message: "User restricted to deposite money",
+    },
+  });
+});
+// Allow to Deposite money
+exports.allowToDepositeMoney = catchAsync(async (req, res, next) => {
+  await User.findByIdAndUpdate(req.params.id, { allowedToDeposite: true });
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      message: "User allowed to deposite money",
+    },
+  });
+});
+
+// Restrict to withdraw money
+exports.restrictToWithdrawMoney = catchAsync(async (req, res, next) => {
+  await User.findByIdAndUpdate(req.params.id, { allowedToWithdraw: false });
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      message: "User restricted to withdraw money",
+    },
+  });
+});
+// Allow to withdraw money
+exports.allowToWithdrawMoney = catchAsync(async (req, res, next) => {
+  await User.findByIdAndUpdate(req.params.id, { allowedToWithdraw: true });
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      message: "User allowed to withdraw money",
+    },
+  });
+});
+// Block user
 exports.blockUser = catchAsync(async (req, res, next) => {
-  const userToUpdate = await User.findById(req.params.userId);
-  console.log(`user to update is:${userToUpdate.role}`);
-  console.log(`user who is updating is:${req.user.role}`);
+  await User.findByIdAndUpdate(req.params.id, { blocked: true });
 
-  if (
-    userToUpdate.role == "admin" ||
-    (userToUpdate.role == "librarian" && req.user.role == "librarian")
-  ) {
-    console.log("condition pass");
-    next(new AppErr("You cannot perform this operation!", 400));
-  }
-  await User.findByIdAndUpdate(req.params.userId, { blocked: true });
   res.status(200).json({
     status: "success",
-    data: null,
+    data: {
+      message: "User blocked successfully",
+    },
   });
 });
 
-//  Unblocking user
+// Unblock user
 exports.unblockUser = catchAsync(async (req, res, next) => {
-  const userToUpdate = User.findById(req.params.userId);
-  if (userToUpdate == "librarian" && req.user.role == "librarian") {
-    next(new AppErr("You cannot perform this operation!", 400));
-  }
-  await User.findByIdAndUpdate(req.params.userId, { blocked: false });
-  res.status(200).json({
-    status: "success",
-    data: null,
-  });
-});
+  await User.findByIdAndUpdate(req.params.id, { blocked: false });
 
-// make user member
-exports.makeUserMember = catchAsync(async (req, res, next) => {
-  await User.findByIdAndUpdate(req.params.userId, {
-    member: true,
-    role: "member",
-  });
   res.status(200).json({
     status: "success",
-    data: null,
-  });
-}); // Cancel membership
-exports.cancelMembership = catchAsync(async (req, res, next) => {
-  await User.findByIdAndUpdate(req.params.userId, {
-    member: false,
-    role: "user",
-  });
-  res.status(200).json({
-    status: "success",
-    data: null,
-  });
-});
-
-// make user Librarian
-exports.makeUserLibrarian = catchAsync(async (req, res, next) => {
-  await User.findByIdAndUpdate(req.params.userId, { role: "librarian" });
-  res.status(200).json({
-    status: "success",
-    data: null,
-  });
-});
-
-// Payment fail
-exports.paymentFail = catchAsync(async (req, res, next) => {
-  Console.log("payment is not paid . there is something went wrong");
-  res.status(200).json({
-    status: "fail",
-  });
-});
-// run when payment paid
-exports.makeMeMember = catchAsync(async (req, res, next) => {
-  console.log("payment is  paid ! ");
-  await User.findByIdAndUpdate(req.params.id, { member: true, role: "member" });
-  res.status(200).json({
-    status: "fail",
+    data: {
+      message: "User is unblocked successfully",
+    },
   });
 });

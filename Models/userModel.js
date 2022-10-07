@@ -2,7 +2,7 @@ const crypto = require("crypto");
 const mongoose = require("mongoose");
 const validator = require("validator");
 const bcrypt = require("bcrypt");
-
+const AppErr = require("../Utils/appError");
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -16,6 +16,11 @@ const userSchema = new mongoose.Schema(
       required: [true, "must enter email"],
       //   lowercase: true,
       validate: [validator.isEmail, "please provide a valid email"],
+    },
+    phoneNo: {
+      type: String,
+      required: true,
+      unique: true,
     },
     photo: {
       type: String,
@@ -54,11 +59,45 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: {
-        values: ["member", "user"],
+        values: ["admin", "user"],
         message: "Enter valid role ",
       },
       default: "user",
     },
+    CNICNo: {
+      type: Number,
+      // minlength: 13,
+      // maxlength: 13,
+      required: true,
+      unique: true,
+      validate: {
+        validator: function (val) {
+          return val.toString().length === 13;
+        },
+        message: (val) => `${val.value} has to be 13 digits`,
+      },
+    },
+    allowedToTransfer: {
+      type: Boolean,
+      default: true,
+    },
+    allowedToDeposite: {
+      type: Boolean,
+      default: true,
+    },
+    allowedToWithdraw: {
+      type: Boolean,
+      default: true,
+    },
+    twoStepAuthOn: {
+      type: Boolean,
+      default: false,
+    },
+    authToken: {
+      type: String,
+      default: null,
+    },
+    authTokenExpiresAt: Date,
   },
   { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
@@ -66,6 +105,17 @@ const userSchema = new mongoose.Schema(
 userSchema.pre("save", async function (next) {
   //only run this function if password id actually modified
   if (!this.isModified("password")) return next();
+  // password validation using Regex
+  // var passwordPattern = /^[A-Za-z]\w{7,14}$/;
+  var passwordPattern =
+    /^(?=.*\d)(?=.*[A-Z])(?=.*[a-z])(?=.*[!@#$%^&*])(?=.*[a-zA-Z!#$%&? "])[a-zA-Z0-9!#$%&?]{5,14}$/;
+  if (!this.password.match(passwordPattern)) {
+    next(
+      new AppErr(
+        "Password is invalid! it should be atleast 8 characters,start with character and contains symbols."
+      )
+    );
+  }
   // Hash the password with cost
   this.password = await bcrypt.hash(this.password, 12);
   // remove(stop) the confirmPassword to store in db. require means necessary to input not to save in db.

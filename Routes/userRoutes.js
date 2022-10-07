@@ -1,85 +1,130 @@
 const express = require("express");
+const userController = require("../Controllers/userControllers");
+const authController = require("../Controllers/authControllers");
 
 const router = express.Router();
-const userControllers = require("../Controllers/userControllers");
-const authControllers = require("../Controllers/authControllers");
 
-// Auth routes
-router.post("/signup", authControllers.signup);
-router.post("/login", authControllers.login);
-router.post("/forgotPassword", authControllers.forgotPassword);
-router.patch("/resetPassword/:token", authControllers.resetPassword);
+router.post("/signup", authController.signup);
+router.post("/login", authController.login);
+
+router.post("/forgotPassword", authController.forgotPassword);
+router.patch("/resetPassword/:token", authController.resetPassword);
+
+// // Protect all routes after this middleware
+// router.use(authController.protect);
 
 router.patch(
   "/updateMyPassword",
-  authControllers.protect,
-  authControllers.updatePassword
+  authController.protect,
+  authController.updatePassword
 );
-
+router.get(
+  "/me",
+  authController.protect,
+  userController.getMe,
+  userController.getUser
+);
 router.patch(
   "/updateMe",
-  authControllers.protect,
-  userControllers.uploadPhoto,
-  userControllers.resizeUserPhoto,
-  userControllers.updateMe
+  authController.protect,
+  userController.uploadUserPhoto,
+  userController.resizeUserPhoto,
+  userController.updateMe
 );
-router.delete("/deleteMe", authControllers.protect, userControllers.deleteMe);
+router.delete("/deleteMe", authController.protect, userController.deleteMe);
+
+// router.use(authController.restrictTo("admin"));
+
+router
+  .route("/getAllUsers")
+  .get(
+    authController.protect,
+    authController.restrictTo("admin"),
+    userController.getAllUsers
+  );
+
 router.get(
-  "/getMe",
-  authControllers.protect,
-  userControllers.getMe,
-  userControllers.getUser
+  "/getSingleUser/:id",
+  authController.protect,
+  authController.restrictTo("admin"),
+  userController.getUser
 );
-// block user
 router.patch(
-  "/blockUser/:userId",
-  authControllers.protect,
-  authControllers.restrictTo("admin", "librarian"),
-  userControllers.blockUser
+  "/updateSingleUser/:id",
+  authController.protect,
+  authController.restrictTo("admin"),
+  userController.updateUser
 );
-// unblock user
+router.delete(
+  "/deleteSingleUser/:id",
+  authController.protect,
+  authController.restrictTo("admin"),
+  userController.deleteUser
+);
+router.patch("/turnOnAuth", authController.protect, userController.turnOnAuth);
 router.patch(
-  "/unblockUser/:userId",
-  authControllers.protect,
-  authControllers.restrictTo("admin", "librarian"),
-  userControllers.unblockUser
+  "/turnOffAuth",
+  authController.protect,
+  userController.turnOffAuth
 );
-// make user member
 router.patch(
-  "/makeUserMember/:userId",
-  authControllers.protect,
-  authControllers.restrictTo("admin", "librarian"),
-  userControllers.makeUserMember
+  "/makeAdmin/:id",
+  authController.protect,
+  authController.restrictTo("admin"),
+  userController.makeAdmin
 );
-// Cancel Membership
 router.patch(
-  "/cancelMembership/:userId",
-  authControllers.protect,
-  authControllers.restrictTo("admin", "librarian"),
-  userControllers.cancelMembership
+  "/makeUser/:id",
+  authController.protect,
+  authController.restrictTo("admin"),
+  userController.makeUser
 );
-// make user librarian
 router.patch(
-  "/makeUserLibrarian/:userId",
-  authControllers.protect,
-  authControllers.restrictTo("admin"),
-  userControllers.makeUserLibrarian
+  "/restrictToTransferMoney/:id",
+  authController.protect,
+  authController.restrictTo("admin"),
+  userController.restrictToTransferMoney
 );
-
-// // Payment fail
-// router.patch("/paymentFail", userControllers.paymentFail);
-// // make me member
-// router.get("/makeMeMember/:id", userControllers.makeMeMember);
-
-router.use(authControllers.protect);
-router.use(authControllers.restrictTo("admin")); // This midlware will only allow admin to use below all routes.
-router.get("/getAllUsers", userControllers.getAllUsers);
-// // buy membership
-// router.get(
-//   "/payFine",
-//   authControllers.protect,
-//   authControllers.protect,
-//   fineControllers.payFine
-// );
-
+router.patch(
+  "/allowToTransferMoney/:id",
+  authController.protect,
+  authController.restrictTo("admin"),
+  userController.allowToTransferMoney
+);
+router.patch(
+  "/restrictToDepositeMoney/:id",
+  authController.protect,
+  authController.restrictTo("admin"),
+  userController.restrictToDepositeMoney
+);
+router.patch(
+  "/allowToDepositeMoney/:id",
+  authController.protect,
+  authController.restrictTo("admin"),
+  userController.allowToDepositeMoney
+);
+router.patch(
+  "/restrictToWithdrawMoney/:id",
+  authController.protect,
+  authController.restrictTo("admin"),
+  userController.restrictToWithdrawMoney
+);
+router.patch(
+  "/allowToWithdrawMoney/:id",
+  authController.protect,
+  authController.restrictTo("admin"),
+  userController.allowToWithdrawMoney
+);
+router.patch(
+  "/blockUser/:id",
+  authController.protect,
+  authController.restrictTo("admin"),
+  userController.blockUser
+);
+router.patch(
+  "/unblockUser/:id",
+  authController.protect,
+  authController.restrictTo("admin"),
+  userController.unblockUser
+);
 module.exports = router;

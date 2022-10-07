@@ -19,7 +19,9 @@ app.use(xssClean());
 //  Set Security HTTP Headers======
 app.use(helmet());
 
-app.use(bodyParser.json());
+// app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+
 app.use(morgan("dev"));
 
 app.use(express.json());

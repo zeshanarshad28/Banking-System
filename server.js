@@ -4,11 +4,11 @@ dotenv.config({ path: "./config.env" });
 const cron = require("node-cron");
 const app = require("./app");
 
-const DB = process.env.DATABASE.replace(
-  "<password>",
-  process.env.DATABASE_PASSWORD
-);
-
+// const DB = process.env.DATABASE.replace(
+//   "<password>",
+//   process.env.DATABASE_PASSWORD
+// );
+DB = "mongodb://localhost:27017/bankingSystem";
 mongoose
   .connect(DB, {
     useNewUrlParser: true,

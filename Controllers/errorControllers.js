@@ -6,11 +6,14 @@ const handleCastErrorDB = (err) => {
 };
 
 const handleDuplicateFieldsDB = (err) => {
-  const value = err.errmsg.match(/(["'])(\\?.)*?\1/)[0];
-  console.log(value);
+  // const value = err.errmsg.match(/(["'])(\\?.)*?\1/)[0];
+  // console.log(value);
+  // console.log(`//////// ${err.message}`);
+  // console.log(`......error is:${err}`);
 
-  const message = `Duplicate field value: ${value}. Please use another value!`;
-  return new AppError(message, 400);
+  // const message = `Duplicate field value:${value}. Please use another value!`;
+  // return new AppError(message, 400);
+  return new AppError("Duplicate key", 400);
 };
 
 const handleValidationErrorDB = (err) => {
@@ -31,7 +34,7 @@ const sendErrorDev = (err, res) => {
   console.log(err);
   res.status(err.statusCode).json({
     status: err.status,
-    error: err,
+    // error: err,
     message: err.message,
     stack: err.stack,
   });
@@ -41,7 +44,7 @@ const sendErrorProd = (err, res) => {
   // Operational, trusted error: send message to client
   if (err.isOperational) {
     res.status(err.statusCode).json({
-      status: err.status,
+      // status: err.status,
       message: err.message,
     });
 
@@ -51,6 +54,7 @@ const sendErrorProd = (err, res) => {
     console.error("ERROR:", err);
 
     // 2) Send generic message
+    console.log(`.....${process.env.NODE_ENV}`);
     res.status(500).json({
       status: "error",
       message: "Something went very wrong!",
@@ -63,11 +67,12 @@ module.exports = (err, req, res, next) => {
   // console.log("error called");
   err.statusCode = err.statusCode || 500;
   err.status = err.status || "error";
-
-  if (process.env.NODE_ENV === "development") {
+  console.log(`"${process.env.NODE_ENV}"`);
+  if (process.env.NODE_ENV === "development ") {
     console.log("Dev error");
     sendErrorDev(err, res);
   } else if (process.env.NODE_ENV === "production") {
+    // console.log(err);
     let error = { ...err };
 
     if (error.name === "CastError") error = handleCastErrorDB(error);
