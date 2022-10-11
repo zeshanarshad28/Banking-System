@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.post("/signup", authController.signup);
 router.post("/login", authController.login);
+router.post("/loginWithAuth", authController.loginWithAuth);
 
 router.post("/forgotPassword", authController.forgotPassword);
 router.patch("/resetPassword/:token", authController.resetPassword);
@@ -126,5 +127,17 @@ router.patch(
   authController.protect,
   authController.restrictTo("admin"),
   userController.unblockUser
+);
+router.post(
+  "/requestAtmCard",
+  authController.protect,
+  userController.requestAtmCard
+);
+router.patch(
+  "/issueAtmCard/:reqId",
+  authController.protect,
+  authController.restrictTo("admin"),
+
+  userController.issueAtmCard
 );
 module.exports = router;

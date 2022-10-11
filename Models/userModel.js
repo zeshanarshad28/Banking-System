@@ -97,7 +97,18 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
-    authTokenExpiresAt: Date,
+    authTokenExpiresAt: {
+      type: Date,
+      default: null,
+    },
+    haveCurrentAccount: {
+      type: Boolean,
+      default: false,
+    },
+    haveSavingAccount: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
@@ -167,5 +178,8 @@ userSchema.pre(/^find/, function (next) {
   this.find({ active: true });
   next();
 });
-const User = mongoose.model("User", userSchema);
-module.exports = User;
+// module.exports = mongoose.model("users", userSchema);
+module.exports =
+  // mongoose.models.userSchema || mongoose.model("User", userSchema);
+  module.exports = mongoose.models.users || mongoose.model("users", userSchema);
+// module.exports = User;

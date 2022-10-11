@@ -3,8 +3,8 @@ const mongoose = require("mongoose");
 const withdrawSchema = new mongoose.Schema(
   {
     accountNo: {
-      type: mongoose.Schema.ObjectId,
-      ref: "accounts",
+      type: String,
+
       required: [true, "please give receiver's account number "],
     },
     amount: {
@@ -16,17 +16,16 @@ const withdrawSchema = new mongoose.Schema(
       default: Date.now(),
     },
     receiversAccountNo: {
-      type: mongoose.Schema.ObjectId,
-      ref: "accounts",
+      type: String,
     },
     method: {
       type: String,
       enum: {
-        values: ["cash", "cheque", "onlineTransfer"],
+        values: ["atmCard", "cheque", "onlineTransfer"],
         message: "Enter valid account type ",
       },
     },
-    ChequeNo: {
+    chequeNo: {
       type: Number,
     },
     description: {

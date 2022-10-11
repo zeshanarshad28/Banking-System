@@ -1,9 +1,13 @@
 const multer = require("multer");
 const sharp = require("sharp");
-const User = require("./../models/userModel");
+let User = require("./../models/userModel");
 const catchAsync = require("./../utils/catchAsync");
 const AppError = require("./../utils/appError");
 const factory = require("./handlersFactory");
+const Accounts = require("../Models/accountsModel");
+const AtmCard = require("../Models/atmCardModel");
+const { findById } = require("../Models/accountsModel");
+const { message } = require("../Utils/sms");
 
 const multerStorage = multer.memoryStorage();
 
@@ -211,8 +215,10 @@ exports.allowToWithdrawMoney = catchAsync(async (req, res, next) => {
 });
 // Block user
 exports.blockUser = catchAsync(async (req, res, next) => {
-  await User.findByIdAndUpdate(req.params.id, { blocked: true });
-
+  const user = await User.findByIdAndUpdate(req.params.id, { blocked: true });
+  if (!user) {
+    return next(new AppError("Enter valid id "));
+  }
   res.status(200).json({
     status: "success",
     data: {
@@ -223,12 +229,66 @@ exports.blockUser = catchAsync(async (req, res, next) => {
 
 // Unblock user
 exports.unblockUser = catchAsync(async (req, res, next) => {
-  await User.findByIdAndUpdate(req.params.id, { blocked: false });
-
+  const user = await User.findByIdAndUpdate(req.params.id, { blocked: false });
+  if (!user) {
+    return next(new AppError("Enter valid id "));
+  }
   res.status(200).json({
     status: "success",
     data: {
       message: "User is unblocked successfully",
+    },
+  });
+});
+//  Request ATM card
+exports.requestAtmCard = catchAsync(async (req, res, next) => {
+  const oldCard = await AtmCard.findOne({
+    userId: req.user._id,
+    active: true,
+    type: req.body.type,
+  });
+  console.log(oldCard);
+  if (oldCard) {
+    await AtmCard.findByIdAndUpdate(oldCard._id, {
+      active: false,
+    });
+  }
+  let seconds = Date.now();
+  // console.log(seconds);
+  let randNumber =
+    Math.floor(Math.random() * 1000000000000 + 9999999999999) + Date.now();
+  let cardNumber = randNumber + seconds;
+  const card = await AtmCard.create({
+    atmCardNo: cardNumber,
+    type: req.body.type,
+    userId: req.user._id,
+  });
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      message: "Atm card requested.",
+    },
+  });
+});
+
+// Admin issue Atm Card
+exports.issueAtmCard = catchAsync(async (req, res, next) => {
+  const card = await AtmCard.findOne({
+    _id: req.params.reqId,
+  });
+  if (!card) {
+    return new AppError("card not found!", 404);
+  }
+  await AtmCard.findByIdAndUpdate(req.params.reqId, {
+    issued: true,
+  });
+  const { phoneNo } = await AtmCard.findById(card.userId);
+  message("Your ATM card is isuued", phoneNo);
+  res.status(200).json({
+    status: "success",
+    data: {
+      message: "Atm card issued.",
     },
   });
 });

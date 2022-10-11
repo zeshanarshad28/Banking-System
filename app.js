@@ -6,6 +6,9 @@ const mongoSanitize = require("express-mongo-sanitize");
 const xssClean = require("xss-clean");
 
 const userRoutes = require("./routes/userRoutes");
+const checkbookRoutes = require("./Routes/checkbookRoutes");
+const accountsRoutes = require("./Routes/accountsRoutes");
+const moneyCirculationRoutes = require("./Routes/moneyCirculationRoutes");
 
 const AppError = require("./utils/appError");
 const globalErrorHandler = require("./Controllers/errorControllers");
@@ -27,6 +30,9 @@ app.use(morgan("dev"));
 app.use(express.json());
 // Routes
 app.use("/api/v1/user", userRoutes);
+app.use("/api/v1/accounts", accountsRoutes);
+app.use("/api/v1/checkbook", checkbookRoutes);
+app.use("/api/v1/moneyCirculation", moneyCirculationRoutes);
 
 // // Handling unhandled routes:
 app.all("*", (req, res, next) => {

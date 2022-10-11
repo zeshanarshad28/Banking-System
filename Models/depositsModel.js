@@ -2,9 +2,8 @@ const mongoose = require("mongoose");
 
 const depositsSchema = new mongoose.Schema(
   {
-    accountNo: {
-      type: mongoose.Schema.ObjectId,
-      ref: "accounts",
+    receiversAccountNo: {
+      type: String,
       required: [true, "please give receiver's account number "],
     },
     amount: {
@@ -16,8 +15,8 @@ const depositsSchema = new mongoose.Schema(
       default: Date.now(),
     },
     senderAccountNo: {
-      type: mongoose.Schema.ObjectId,
-      ref: "accounts",
+      type: String,
+      required: [true, "please give sender's account no."],
     },
     method: {
       type: String,

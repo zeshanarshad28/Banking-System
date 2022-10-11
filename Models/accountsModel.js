@@ -4,12 +4,8 @@ const accountsSchema = new mongoose.Schema(
   {
     accountNo: {
       type: String,
-      default: () => {
-        return (
-          performance.now().toString(36) + Math.random().toString(36)
-        ).replace(/\./g, "");
-      },
-      required: true,
+
+      unique: true,
     },
     type: {
       type: String,
@@ -23,16 +19,9 @@ const accountsSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    remainingCheques: {
-      type: Number,
-      default: 0,
-    },
-    chequeBookActive: {
-      type: Boolean,
-      default: false,
-    },
     cheques: {
       type: Array,
+      default: null,
     },
     userId: {
       type: mongoose.Schema.ObjectId,

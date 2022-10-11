@@ -1,10 +1,11 @@
 const { promisify } = require("util");
 const crypto = require("crypto");
-const User = require("../models/userModel");
+let User = require("../models/userModel");
 const catchAsync = require("../utils/catchAsync");
 const AppErr = require("../utils/appError");
 const jwt = require("jsonwebtoken");
 const Email = require("../utils/email");
+const { message } = require("../Utils/sms");
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN,
@@ -47,12 +48,18 @@ exports.signup = catchAsync(async (req, res, next) => {
 
   const url = `${req.protocol}://${req.get("host")}/me`;
   await new Email(newUser, url).sendWelcome();
+  // if (req.body.phoneNo) {
+  message(
+    "Congratulations your account has been created successfully",
+    req.body.phoneNo
+  );
+  // }
   // const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
   //   expiresIn: process.env.JWT_EXPIRES_IN,
   // });
   creatSendToken(newUser, 201, res);
 });
-//     ====================LOGIN User=========================================
+//     ====================LOGIN User without auth=========================================
 exports.login = catchAsync(async (req, res, next) => {
   console.log("route hit for login");
   const { email, password } = req.body;
@@ -66,11 +73,42 @@ exports.login = catchAsync(async (req, res, next) => {
   if (!user || !(await user.correctPassword(password, user.password))) {
     return next(new AppErr("Incorrect email or password", 401));
   }
-
+  if (user.twoStepAuthOn == true) {
+    console.log("sending pin code to number");
+    let authToken = Math.floor(100000 + Math.random() * 900000);
+    console.log(authToken);
+    let tokenExpiry = Date.now() + 1000 * 60 * 2;
+    let newUser = await User.findOneAndUpdate(
+      { email },
+      {
+        authToken,
+        authTokenExpiresAt: tokenExpiry,
+      }
+    );
+    message(`Verification token is:${authToken}.`, user.phoneNo);
+    return res.status(200).json({
+      status: "success",
+      message: "verification token send!",
+    });
+  }
+  console.log("getting login");
   // creat token from existing function .
   creatSendToken(user, 200, res);
 });
+// ====================LOGIN WITH AUTH===============
+exports.loginWithAuth = catchAsync(async (req, res, next) => {
+  const { email, authToken } = req.body;
 
+  const user = await User.findOne({ email });
+  if (user.authToken != authToken) {
+    return next(new AppErr("Invalid token", 401));
+  }
+  if (user.authTokenExpiresAt < Date.now()) {
+    return next(new AppErr("Token Expired !", 401));
+  }
+
+  creatSendToken(user, 200, res);
+});
 // ===========================VERIFY TOKEN BEFORE GETTING DATA=====================
 exports.protect = catchAsync(async (req, res, next) => {
   // 1) Getting token and check if its there
@@ -120,7 +158,7 @@ exports.protect = catchAsync(async (req, res, next) => {
 
 exports.restrictTo = (...roles) => {
   return (req, res, next) => {
-    console.log(req.user);
+    // console.log(req.user);
     if (!roles.includes(req.user.role)) {
       return next(
         new AppErr("You donot have permission to perform this action ", 403)
