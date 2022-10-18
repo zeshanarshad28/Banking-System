@@ -1,5 +1,4 @@
 const nodemailer = require("nodemailer");
-const pug = require("pug");
 
 module.exports = class Email {
   constructor(user, url) {

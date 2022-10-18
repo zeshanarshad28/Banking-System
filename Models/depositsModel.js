@@ -16,12 +16,12 @@ const depositsSchema = new mongoose.Schema(
     },
     senderAccountNo: {
       type: String,
-      required: [true, "please give sender's account no."],
+      // required: [true, "please give sender's account no."],
     },
     method: {
       type: String,
       enum: {
-        values: ["cash", "cheque", "onlineTransfer"],
+        values: ["cash", "cheque", "onlineTransfer", "card_payment"],
         message: "Enter valid account type ",
       },
     },

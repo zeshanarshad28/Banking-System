@@ -1,4 +1,2 @@
-node_modules/
-*.env
-.vscode
-.cache
+config.env
+node_modules

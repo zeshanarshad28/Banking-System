@@ -6,12 +6,12 @@ const mongoSanitize = require("express-mongo-sanitize");
 const xssClean = require("xss-clean");
 
 const userRoutes = require("./routes/userRoutes");
-const checkbookRoutes = require("./Routes/checkbookRoutes");
-const accountsRoutes = require("./Routes/accountsRoutes");
-const moneyCirculationRoutes = require("./Routes/moneyCirculationRoutes");
+const checkbookRoutes = require("./routes/checkbookRoutes");
+const accountsRoutes = require("./routes/accountsRoutes");
+const moneyCirculationRoutes = require("./routes/moneyCirculationRoutes");
 
 const AppError = require("./utils/appError");
-const globalErrorHandler = require("./Controllers/errorControllers");
+const globalErrorHandler = require("./controllers/errorControllers");
 
 const app = express();
 

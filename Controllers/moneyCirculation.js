@@ -1,13 +1,13 @@
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
 const handlersFactory = require("./handlersFactory");
-const ApiFeatures = require("../Utils/apiFeatures");
-const Accounts = require("../Models/accountsModel");
-let User = require("./../Models/userModel");
-const atmCardModel = require("../Models/atmCardModel");
-const { message } = require("../Utils/sms");
-const WithdrawModel = require("../Models/withdrawModel");
-const Deposite = require("../Models/depositsModel");
+const ApiFeatures = require("../utils/apiFeatures");
+const Accounts = require("../models/accountsModel");
+let User = require("./../models/userModel");
+const atmCardModel = require("../models/atmCardModel");
+const { message } = require("../utils/sms");
+const WithdrawModel = require("../models/withdrawModel");
+const Deposite = require("../models/depositsModel");
 // Withdraw Money by cheque
 exports.withdrawMoneyByCheque = catchAsync(async (req, res, next) => {
   //   console.log(req.body);
@@ -112,6 +112,11 @@ exports.withdrawMoneyByAtmCard = catchAsync(async (req, res, next) => {
     status: "success",
     data: {
       message: "Amount withdraw successfully",
+      Recipt: {
+        Account_No: req.body.accountNo,
+        Amount: req.body.amount,
+        Date: Date.now(),
+      },
     },
   });
 });
@@ -229,7 +234,7 @@ exports.transferMoneyFromSavingAccount = catchAsync(async (req, res, next) => {
       balance: receiver.balance + req.body.amount,
     }
   );
-  //   remove balance from sebders account
+  //   remove balance from senders account
   await Accounts.findOneAndUpdate(
     {
       userId: req.user._id,
@@ -267,5 +272,203 @@ exports.transferMoneyFromSavingAccount = catchAsync(async (req, res, next) => {
     data: {
       message: "Amount deposite successfully",
     },
+  });
+});
+
+// Transaction Report.
+exports.transactionReport = catchAsync(async (req, res, next) => {
+  // first verify if exact user or an admin is checking history
+  const { userId } = await Accounts.findOne({
+    accountNo: req.params.accountNo,
+  });
+  if (req.user.role != "admin") {
+    if (!req.user._id.equals(userId)) {
+      next(new AppError("Wrong account number", 401));
+    }
+  }
+  if (!req.query.page) {
+    req.query.page = 1;
+  }
+  if (!req.query.limit) {
+    req.query.limit = 10;
+  }
+  const startDate = req.query.startDate;
+  const endDate = req.query.endDate;
+  //   console.log(new Date(startDate));
+  //   console.log(new Date(`${startDate}`));
+  //   console.log(new Date(endDate));
+
+  const page = req.query.page * 1;
+  const limit = req.query.limit * 1;
+  const skip = (page - 1) * limit;
+  const withdraws = await WithdrawModel.aggregate([
+    {
+      $match: {
+        $and: [
+          { accountNo: req.params.accountNo },
+
+          { date: { $gte: new Date(startDate) } },
+          { date: { $lte: new Date(endDate) } },
+        ],
+      },
+    },
+
+    {
+      $sort: { date: -1 },
+    },
+
+    {
+      $limit: limit,
+    },
+    {
+      $skip: skip,
+    },
+  ]);
+
+  const deposites = await Deposite.aggregate([
+    {
+      $match: {
+        $and: [
+          {
+            receiversAccountNo: req.params.accountNo,
+          },
+
+          { date: { $gte: new Date(startDate) } },
+          { date: { $lte: new Date(endDate) } },
+        ],
+      },
+    },
+
+    {
+      $sort: { date: -1 },
+    },
+
+    {
+      $limit: limit,
+    },
+    {
+      $skip: skip,
+    },
+  ]);
+  let both = withdraws.concat(deposites);
+  let history = both.sort((a, b) => b.date - a.date);
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      message: "Report is ready",
+      history,
+      //   both,
+    },
+  });
+});
+
+// Deposite Money in account( by Stripe )
+exports.addMoney = catchAsync(async (req, res, next) => {
+  const receiver = await Accounts.findOne({
+    accountNo: req.params.accountNo,
+  });
+  if (!receiver) {
+    return next(new AppError("No receiver account found", 401));
+  }
+  const { allowedToDeposite, phoneNo } = await User.findById(receiver.userId);
+  if (allowedToDeposite == false) {
+    return next(
+      new AppError("Receiver is not allowed to recieve any amount !", 401)
+    );
+  }
+  //   add balance to receivers account
+  console.log(req.params.amount);
+  console.log(receiver.balance);
+  const am = req.params.amount * 1;
+  const newAmount = (receiver.balance + am) * 1;
+  await Accounts.findOneAndUpdate(
+    { accountNo: req.params.accountNo },
+    {
+      balance: newAmount,
+    }
+  );
+  // create deposite
+  const deposite = await Deposite.create({
+    receiversAccountNo: req.params.accountNo,
+    amount: req.params.amount,
+    method: "card_payment",
+    // description: req.params.description,
+  });
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      message: "Amount Deposited",
+    },
+  });
+});
+
+// in case payment failed...................................
+// Payment fail
+exports.paymentFail = catchAsync(async (req, res, next) => {
+  Console.log("payment is not paid . there is something went wrong");
+  res.status(200).json({
+    status: "fail",
+  });
+});
+
+// ===================================================================================
+exports.interestUpdate = catchAsync(async (req, res, next) => {
+  let allAccounts = await Accounts.find({ type: "saving" });
+  let allAccountNumbers = [];
+  allAccounts.forEach((el) => {
+    console.log(el);
+    console.log(el.accountNo);
+    allAccountNumbers.push(el.accountNo);
+  });
+
+  console.log(allAccountNumbers);
+  let accountNo = req.params.accountNo; // later we'll get it from array of allAccountNumbers one by one
+  // Getting total withdarw till now
+  let allWithdraw = await WithdrawModel.aggregate([
+    {
+      $match: { accountNo: accountNo },
+    },
+
+    {
+      $group: {
+        _id: "",
+
+        total: { $sum: "$amount" },
+      },
+    },
+  ]);
+  let totalWithdraw = allWithdraw[0].total;
+
+  let allDepositesDocs = await Deposite.find({ receiversAccountNo: accountNo });
+  let allAmounts = [];
+
+  allDepositesDocs.forEach((el) => {
+    // console.log(el);
+    // console.log(el.amount);
+    allAmounts.push(el.amount);
+  });
+  let index;
+  let difference;
+  let length = allAmounts.length;
+  for (let i = 0; i < length; i++) {
+    index = i;
+    if (totalWithdraw < allAmounts[i]) {
+      index = i;
+      difference = allAmounts[i] - totalWithdraw;
+      break;
+    }
+    totalWithdraw = totalWithdraw - allAmounts[i];
+    // allAmounts.shift();
+  }
+
+  res.status(200).json({
+    status: "success",
+    message: "interest updated ! ",
+    allAccounts,
+    totalWithdraw,
+    // allDepositesDocs,
+    // allAmounts,
   });
 });

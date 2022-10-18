@@ -1,13 +1,13 @@
 const multer = require("multer");
 const sharp = require("sharp");
-let User = require("./../models/userModel");
-const catchAsync = require("./../utils/catchAsync");
-const AppError = require("./../utils/appError");
+let User = require("../models/userModel");
+const catchAsync = require("../utils/catchAsync");
+const AppError = require("../utils/appError");
 const factory = require("./handlersFactory");
-const Accounts = require("../Models/accountsModel");
-const AtmCard = require("../Models/atmCardModel");
-const { findById } = require("../Models/accountsModel");
-const { message } = require("../Utils/sms");
+const Accounts = require("../models/accountsModel");
+const AtmCard = require("../models/atmCardModel");
+const { findById, aggregate } = require("../models/accountsModel");
+const { message } = require("../utils/sms");
 
 const multerStorage = multer.memoryStorage();
 
@@ -100,6 +100,10 @@ exports.deleteUser = factory.deleteOne(User);
 // ...................................................
 // Enable two-way Authentication
 exports.turnOnAuth = catchAsync(async (req, res, next) => {
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    return next(new AppError("Invalid Id", 401));
+  }
   await User.findByIdAndUpdate(req.user.id, {
     twoStepAuthOn: true,
   });
@@ -113,6 +117,10 @@ exports.turnOnAuth = catchAsync(async (req, res, next) => {
 });
 // Disable two-way Authentication
 exports.turnOffAuth = catchAsync(async (req, res, next) => {
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    return next(new AppError("Invalid Id", 401));
+  }
   await User.findByIdAndUpdate(req.user.id, {
     twoStepAuthOn: false,
   });
@@ -126,6 +134,10 @@ exports.turnOffAuth = catchAsync(async (req, res, next) => {
 });
 // Admin Change the role from user to admin
 exports.makeAdmin = catchAsync(async (req, res, next) => {
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    return next(new AppError("Invalid Id", 401));
+  }
   await User.findByIdAndUpdate(req.params.id, { role: "admin" });
 
   res.status(200).json({
@@ -137,6 +149,10 @@ exports.makeAdmin = catchAsync(async (req, res, next) => {
 });
 // Admin Change the role from admin to user
 exports.makeUser = catchAsync(async (req, res, next) => {
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    return next(new AppError("Invalid Id", 401));
+  }
   await User.findByIdAndUpdate(req.params.id, { role: "user" });
 
   res.status(200).json({
@@ -148,6 +164,10 @@ exports.makeUser = catchAsync(async (req, res, next) => {
 });
 // Restrict to transfer money
 exports.restrictToTransferMoney = catchAsync(async (req, res, next) => {
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    return next(new AppError("Invalid Id", 401));
+  }
   await User.findByIdAndUpdate(req.params.id, { allowedToTransfer: false });
 
   res.status(200).json({
@@ -159,6 +179,10 @@ exports.restrictToTransferMoney = catchAsync(async (req, res, next) => {
 });
 // Allow to transfer money
 exports.allowToTransferMoney = catchAsync(async (req, res, next) => {
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    return next(new AppError("Invalid Id", 401));
+  }
   await User.findByIdAndUpdate(req.params.id, { allowedToTransfer: true });
 
   res.status(200).json({
@@ -170,6 +194,10 @@ exports.allowToTransferMoney = catchAsync(async (req, res, next) => {
 });
 // Restrict to Deposite money
 exports.restrictToDepositeMoney = catchAsync(async (req, res, next) => {
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    return next(new AppError("Invalid Id", 401));
+  }
   await User.findByIdAndUpdate(req.params.id, { allowedToDeposite: false });
 
   res.status(200).json({
@@ -181,6 +209,10 @@ exports.restrictToDepositeMoney = catchAsync(async (req, res, next) => {
 });
 // Allow to Deposite money
 exports.allowToDepositeMoney = catchAsync(async (req, res, next) => {
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    return next(new AppError("Invalid Id", 401));
+  }
   await User.findByIdAndUpdate(req.params.id, { allowedToDeposite: true });
 
   res.status(200).json({
@@ -193,6 +225,10 @@ exports.allowToDepositeMoney = catchAsync(async (req, res, next) => {
 
 // Restrict to withdraw money
 exports.restrictToWithdrawMoney = catchAsync(async (req, res, next) => {
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    return next(new AppError("Invalid Id", 401));
+  }
   await User.findByIdAndUpdate(req.params.id, { allowedToWithdraw: false });
 
   res.status(200).json({
@@ -204,6 +240,10 @@ exports.restrictToWithdrawMoney = catchAsync(async (req, res, next) => {
 });
 // Allow to withdraw money
 exports.allowToWithdrawMoney = catchAsync(async (req, res, next) => {
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    return next(new AppError("Invalid Id", 401));
+  }
   await User.findByIdAndUpdate(req.params.id, { allowedToWithdraw: true });
 
   res.status(200).json({
@@ -217,7 +257,7 @@ exports.allowToWithdrawMoney = catchAsync(async (req, res, next) => {
 exports.blockUser = catchAsync(async (req, res, next) => {
   const user = await User.findByIdAndUpdate(req.params.id, { blocked: true });
   if (!user) {
-    return next(new AppError("Enter valid id "));
+    return next(new AppError("Enter valid id ", 401));
   }
   res.status(200).json({
     status: "success",
@@ -292,3 +332,143 @@ exports.issueAtmCard = catchAsync(async (req, res, next) => {
     },
   });
 });
+
+// .................
+// Add Recipient
+exports.addRecipient = catchAsync(async (req, res, next) => {
+  console.log(req.user.recipients);
+
+  let getRecipient = await Accounts.aggregate([
+    {
+      $match: { accountNo: req.params.accountNo },
+    },
+    {
+      $lookup: {
+        from: "users",
+        let: { userId: "$userId" },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $eq: ["$_id", "$$userId"],
+              },
+            },
+          },
+        ],
+        as: "userInfo",
+      },
+    },
+    {
+      $project: {
+        accountNo: 1,
+        "userInfo.name": 1,
+        "userInfo.phoneNo": 1,
+        "userInfo._id": 1,
+      },
+    },
+    {
+      $unwind: "$userInfo",
+    },
+  ]);
+  // console.log(`docccc:${getRecipient}`);
+  // console.log("element", getRecipient[0]);
+  let obj = { ...getRecipient[0] };
+  if (!obj) {
+    return next(new AppError("Invalid Id", 401));
+  }
+  // checking wheather user adding himself as receipient
+  // if (obj.userInfo._id.equals(req.user._id)) {
+  //   return next(new AppError("You cannot add yourself as a receipient"));
+  // }
+  //  checking if receipient already exist
+  let length = req.user.recipients.length;
+  console.log(length);
+  for (let i = 0; i < length; i++) {
+    if (req.user.recipients[i].accountNo == req.params.accountNo) {
+      return next(new AppError("Recipient alredy exist", 401));
+    }
+  }
+  // console.log("obj:", obj);
+  req.user.recipients.push({ ...obj });
+  let updatedUser = await User.findByIdAndUpdate(req.user._id, {
+    recipients: [...req.user.recipients],
+  });
+  // let a = {
+  //   a: getRecipient[0].accountNo,
+  //   b: getRecipient[0].userInfo.name,
+  // };
+  // console.log(`aaaaaaa${a}`);
+  console.log(req.user.recipients);
+  res.status(200).json({
+    status: "success",
+    data: {
+      message: "Recipient added.",
+      updatedUser,
+      getRecipient,
+    },
+  });
+});
+// ...................................................................
+
+// Transactions report with Date range
+
+// exports.getMonthlyPlan = catchAsync(async (req, res) => {
+//   console.log(req.query.year * 1);
+//   const year = req.query.year * 1;
+//   const page = req.query.page * 1;
+//   const limit = req.query.limit * 1;
+//   const skip = (page - 1) * limit;
+//   const plan = await .aggregate([
+//     {
+//       $unwind: "$startDate",
+//     },
+
+//     {
+//       $match: {
+//         startDate: {
+//           $gte: new Date(`${year}-01-01`),
+//           $lte: new Date(`${year}-12-31`),
+//         },
+//       },
+//     },
+
+//     {
+//       $group: {
+//         _id: { $month: "$startDate" },
+//         numTourStarts: { $sum: 1 },
+//         tours: { $push: "$name" },
+//       },
+//     },
+//     {
+//       $addFields: { month: "$_id" },
+//     },
+
+//     // {
+//     //   $project: {
+//     //     numTourStarts: 0,
+//     //     _id: 0,
+//     //   },
+//     // },
+
+//     // {
+//     //   $sort: {
+//     //     numTourStarts: -1,
+//     //   },
+//     // },
+
+//     // pagination in aggregation
+//     // {
+//     //   $limit: limit,
+//     // },
+//     // {
+//     //   $skip: skip,
+//     // },
+//   ]);
+
+//   res.status(200).json({
+//     status: "Sucess",
+//     data: {
+//       plan,
+//     },
+//   });
+// });

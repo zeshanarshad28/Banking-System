@@ -1,6 +1,6 @@
 const express = require("express");
-const userController = require("../Controllers/userControllers");
-const authController = require("../Controllers/authControllers");
+const userController = require("../controllers/userControllers");
+const authController = require("../controllers/authControllers");
 
 const router = express.Router();
 
@@ -140,4 +140,10 @@ router.patch(
 
   userController.issueAtmCard
 );
+router.patch(
+  "/addRecipient/:accountNo",
+  authController.protect,
+  userController.addRecipient
+);
+
 module.exports = router;

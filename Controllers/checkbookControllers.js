@@ -1,9 +1,9 @@
-const Checkbook = require("../Models/checkBook");
+const Checkbook = require("../models/checkBook");
 const catchAsync = require("./../utils/catchAsync");
 const AppError = require("./../utils/appError");
 const factory = require("./handlersFactory");
-const Accounts = require("../Models/accountsModel");
-const { findById } = require("../Models/accountsModel");
+const Accounts = require("../models/accountsModel");
+// const { findById } = require("../models/accountsModel");
 
 // Request checkbook
 exports.requestCheckbook = catchAsync(async (req, res, next) => {

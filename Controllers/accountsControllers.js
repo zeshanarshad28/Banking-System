@@ -1,10 +1,10 @@
 const catchAsync = require("../utils/catchAsync");
 const AppErr = require("../utils/appError");
 const handlersFactory = require("./handlersFactory");
-const ApiFeatures = require("../Utils/apiFeatures");
-const Accounts = require("../Models/accountsModel");
-let User = require("./../Models/userModel");
-const { message } = require("../Utils/sms");
+const ApiFeatures = require("../utils/apiFeatures");
+const Accounts = require("../models/accountsModel");
+let User = require("../models/userModel");
+const { message } = require("../utils/sms");
 // create account
 exports.createAccount = catchAsync(async (req, res, next) => {
   //   console.log(req.user);/
@@ -61,12 +61,12 @@ exports.checkBalance = catchAsync(async (req, res, next) => {
     accountNo: req.params.num,
   });
   if (!data) {
-    return next(new AppErr("Account not exist"));
+    return next(new AppErr("Account not exist",401));
     ``;
   }
   //   console.log(data.userId, req.user._id);
   if (req.user._id != data.userId) {
-    return next(new AppErr("invalid account number"));
+    return next(new AppErr("invalid account number",401));
   }
 
   res.status(201).json({

@@ -5,7 +5,8 @@ const catchAsync = require("../utils/catchAsync");
 const AppErr = require("../utils/appError");
 const jwt = require("jsonwebtoken");
 const Email = require("../utils/email");
-const { message } = require("../Utils/sms");
+const { message } = require("../utils/sms");
+const bcrypt = require("bcrypt");
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN,
@@ -76,16 +77,18 @@ exports.login = catchAsync(async (req, res, next) => {
   if (user.twoStepAuthOn == true) {
     console.log("sending pin code to number");
     let authToken = Math.floor(100000 + Math.random() * 900000);
+    message(`Verification token is:${authToken}.`, user.phoneNo);
     console.log(authToken);
+    let authString = authToken.toString();
     let tokenExpiry = Date.now() + 1000 * 60 * 2;
+    let hashedToken = await bcrypt.hash(authString, 12);
     let newUser = await User.findOneAndUpdate(
       { email },
       {
-        authToken,
+        authToken: hashedToken,
         authTokenExpiresAt: tokenExpiry,
       }
     );
-    message(`Verification token is:${authToken}.`, user.phoneNo);
     return res.status(200).json({
       status: "success",
       message: "verification token send!",
@@ -100,9 +103,13 @@ exports.loginWithAuth = catchAsync(async (req, res, next) => {
   const { email, authToken } = req.body;
 
   const user = await User.findOne({ email });
-  if (user.authToken != authToken) {
+  // if (user.authToken != authToken) {
+  //   return next(new AppErr("Invalid token", 401));
+  // }
+  if (!(await bcrypt.compare(authToken, user.authToken))) {
     return next(new AppErr("Invalid token", 401));
   }
+
   if (user.authTokenExpiresAt < Date.now()) {
     return next(new AppErr("Token Expired !", 401));
   }

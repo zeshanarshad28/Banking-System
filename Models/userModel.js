@@ -2,7 +2,7 @@ const crypto = require("crypto");
 const mongoose = require("mongoose");
 const validator = require("validator");
 const bcrypt = require("bcrypt");
-const AppErr = require("../Utils/appError");
+const AppErr = require("../utils/appError");
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -109,6 +109,10 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    recipients: {
+      type: Array,
+      default: null,
+    },
   },
   { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
@@ -133,6 +137,20 @@ userSchema.pre("save", async function (next) {
   this.confirmPassword = undefined;
   next();
 });
+// // // ===== Hash Auth Token
+
+// userSchema.pre("save", async function (next) {
+//   // if (!this.isModified("authToken")) return next();
+
+//   console.log("in hashing");
+//   // Hash the token
+//   if (req.body.authToken) {
+//     this.authToken = await bcrypt.hash(this.authToken, 12);
+//   }
+//   console.log(this.authToken);
+//   next();
+// });
+
 // password Tester
 userSchema.methods.correctPassword = async function (
   passwordByUser,
@@ -178,8 +196,5 @@ userSchema.pre(/^find/, function (next) {
   this.find({ active: true });
   next();
 });
-// module.exports = mongoose.model("users", userSchema);
-module.exports =
-  // mongoose.models.userSchema || mongoose.model("User", userSchema);
-  module.exports = mongoose.models.users || mongoose.model("users", userSchema);
-// module.exports = User;
+
+module.exports = mongoose.models.users || mongoose.model("users", userSchema);
