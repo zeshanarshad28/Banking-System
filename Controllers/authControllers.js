@@ -142,8 +142,9 @@ exports.protect = catchAsync(async (req, res, next) => {
     // console.log("token get step 1.");
     // console.log(token);
   }
-  console.log(token);
+  // console.log(token);
   if (!token) {
+    console.log("theeeee token is undefined.....");
     return next(
       new AppErr("You are not logged in , please login to get access", 401)
     );
@@ -154,8 +155,7 @@ exports.protect = catchAsync(async (req, res, next) => {
   // console.log("token verified step 2.");
   //3) check if the user still exist
   console.log("after decode", decoded);
-  const currentUser = await User.findOne({ _id: decoded.id });
-
+  const currentUser = await User.findById(decoded.id);
   console.log(currentUser);
   if (!currentUser) {
     return next(new AppErr("User not exist now", 401));
@@ -170,6 +170,7 @@ exports.protect = catchAsync(async (req, res, next) => {
   }
   //grant access to the protected rout
   req.user = currentUser;
+  console.log("current user....." + currentUser);
   // console.log(currentUser);
   console.log("verification completed");
   next();
@@ -277,14 +278,16 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
   // 1)get user from collection.
   const user = await User.findById(req.user.id).select("+password");
 
+  console.log("######");
   // check if posted current password is correct
-  if (!(await user.correctPassword(req.body.currentPassword, user.password))) {
-    return next(new AppErr("Your current password is wrong ", 401));
-  }
+  // if (!(await user.correctPassword(req.body.currentPassword, user.password))) {
+  //   return next(new AppErr("Your current password is wrong ", 401));
+  // }
   // if so update password
   user.password = req.body.password;
   user.confirmPassword = req.body.confirmPassword;
   await user.save();
   // Log user in  , send jwt
+  console.log("onnn end");
   creatSendToken(user, 200, res);
 });
