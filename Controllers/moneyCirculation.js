@@ -3,11 +3,13 @@ const AppError = require("../utils/appError");
 const handlersFactory = require("./handlersFactory");
 const ApiFeatures = require("../utils/apiFeatures");
 const Accounts = require("../models/accountsModel");
+const Interest=require("../models/interestModel")
 let User = require("./../models/userModel");
 const atmCardModel = require("../models/atmCardModel");
 const { message } = require("../utils/sms");
 const WithdrawModel = require("../models/withdrawModel");
 const Deposite = require("../models/depositsModel");
+
 // Withdraw Money by cheque
 exports.withdrawMoneyByCheque = catchAsync(async (req, res, next) => {
   //   console.log(req.body);
@@ -278,9 +280,13 @@ exports.transferMoneyFromSavingAccount = catchAsync(async (req, res, next) => {
 // Transaction Report.
 exports.transactionReport = catchAsync(async (req, res, next) => {
   // first verify if exact user or an admin is checking history
-  const { userId } = await Accounts.findOne({
+  const user = await Accounts.findOne({
     accountNo: req.params.accountNo,
   });
+  if(!user){
+    return next(new AppError("Invalid account no,",401))
+  }
+  let userId=user.userId
   if (req.user.role != "admin") {
     if (!req.user._id.equals(userId)) {
       next(new AppError("Wrong account number", 401));
@@ -395,6 +401,7 @@ exports.addMoney = catchAsync(async (req, res, next) => {
     method: "card_payment",
     // description: req.params.description,
   });
+  message(`${req.params.amount} is added to your account.`, phoneNo)
 
   res.status(200).json({
     status: "success",
@@ -413,17 +420,17 @@ exports.paymentFail = catchAsync(async (req, res, next) => {
   });
 });
 
-// ===================================================================================
+// <<<<<<<======================================================================>>>>>>
 exports.interestUpdate = catchAsync(async (req, res, next) => {
   let allAccounts = await Accounts.find({ type: "saving" });
   let allAccountNumbers = [];
   allAccounts.forEach((el) => {
-    console.log(el);
-    console.log(el.accountNo);
+    // console.log(el);
+    // console.log(el.accountNo);
     allAccountNumbers.push(el.accountNo);
   });
 
-  console.log(allAccountNumbers);
+  // console.log(allAccountNumbers);
   let accountNo = req.params.accountNo; // later we'll get it from array of allAccountNumbers one by one
   // Getting total withdarw till now
   let allWithdraw = await WithdrawModel.aggregate([
@@ -449,6 +456,7 @@ exports.interestUpdate = catchAsync(async (req, res, next) => {
     // console.log(el.amount);
     allAmounts.push(el.amount);
   });
+  let profit=0;
   let index;
   let difference;
   let length = allAmounts.length;
@@ -462,13 +470,58 @@ exports.interestUpdate = catchAsync(async (req, res, next) => {
     totalWithdraw = totalWithdraw - allAmounts[i];
     // allAmounts.shift();
   }
+  let newDocs=[...allDepositesDocs];
+  // console.log(newDocs)
+  for(let i=0; i<=index; i++){
+newDocs.shift();
+  }
+  let profitPercentagePerDay=process.env.InterestPercentagePerMonth/30
+let monthOfLastRemovingDoc=allDepositesDocs[index].date.getMonth()
+let leftOverProfit=0
+if(monthOfLastRemovingDoc<Date.now().getMonth){
+leftOverProfit=allDepositesDocs[index].date.getDay()*profitPercentagePerDay
+}
+  for(let i=0; i<newDocs.length ; i++){
+    let document=newDocs[i]
+    let date=document.date
+    let month=date.getMonth()
+    let day=date.getDay()
+    let currentDate=new Date()
+    console.log(currentDate)
+    let currentMonth=currentDate.getMonth()
+    
+  if (month<currentMonth ){
+    // later correct this logic
+  profit=profit+(day*profitPercentagePerDay)+leftOverProfit
+   }
+  }
+  if(profit>0){
+    
+    let {balance}=await Accounts.findOne({
+      accountNo:accountNo
+    })
+    let interestCreate=await Interest.create({
+      accountNo:accountNo,
+      amount:profit
+    })
+    if(interestCreate){
+      console.log("Interst created")
+    }
+
+await Accounts.findOneAndUpdate({accountNo:accountNo},{
+  balance:balance+profit
+})
+}
+
+  // console.log(newDocs)
+
 
   res.status(200).json({
     status: "success",
     message: "interest updated ! ",
     allAccounts,
     totalWithdraw,
-    // allDepositesDocs,
+    // allDepositesDocs, 
     // allAmounts,
   });
 });

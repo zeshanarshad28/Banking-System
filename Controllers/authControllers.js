@@ -7,18 +7,25 @@ const jwt = require("jsonwebtoken");
 const Email = require("../utils/email");
 const { message } = require("../utils/sms");
 const bcrypt = require("bcrypt");
+// const signToken = (id) => {
+//   return jwt.sign({ id }, process.env.JWT_SECRET, {
+//     expiresIn: process.env.JWT_EXPIRES_IN,
+//   });
+// };
 const signToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN,
+  return jwt.sign({ id }, "qwertyuiopasdfghjklzxcvbnmqwerty", {
+    expiresIn: "1d",
   });
 };
 // ======== function to creat and send token===========
 const creatSendToken = (user, statusCode, res) => {
+  console.log("in creatSendToken");
   const token = signToken(user._id);
   // defining a cookie -
   const cookieOptions = {
     expires: new Date(
-      Date.now() + process.env.COOKIES_EXPIRES_IN * 24 * 60 * 60 * 1000
+      // Date.now() + process.env.COOKIES_EXPIRES_IN * 24 * 60 * 60 * 1000
+      Date.now() + 1 * 24 * 60 * 60 * 1000
     ),
     httpOnly: true, // cookie can not modify by browser
   };
@@ -43,21 +50,22 @@ exports.signup = catchAsync(async (req, res, next) => {
     confirmPassword: req.body.confirmPassword,
     CNICNo: req.body.CNICNo,
     phoneNo: req.body.phoneNo,
-
     passwordChangedAt: req.body.passwordChangedAt,
   });
 
   const url = `${req.protocol}://${req.get("host")}/me`;
-  await new Email(newUser, url).sendWelcome();
+  let sendingMail = await new Email(newUser, url).sendWelcome();
+  // let e = new Email(newUser, url);
+  // let sendingMail = await e.sendWelcome();
+
   // if (req.body.phoneNo) {
-  message(
-    "Congratulations your account has been created successfully",
-    req.body.phoneNo
-  );
+  // message(
+  //   "Congratulations your account has been created successfully",
+  //   req.body.phoneNo
+  //   // "+923056320218"
+  // );
   // }
-  // const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
-  //   expiresIn: process.env.JWT_EXPIRES_IN,
-  // });
+
   creatSendToken(newUser, 201, res);
 });
 //     ====================LOGIN User without auth=========================================
@@ -100,20 +108,24 @@ exports.login = catchAsync(async (req, res, next) => {
 });
 // ====================LOGIN WITH AUTH===============
 exports.loginWithAuth = catchAsync(async (req, res, next) => {
+  console.log("in auth login");
   const { email, authToken } = req.body;
 
   const user = await User.findOne({ email });
   // if (user.authToken != authToken) {
   //   return next(new AppErr("Invalid token", 401));
   // }
+  console.log(1);
   if (!(await bcrypt.compare(authToken, user.authToken))) {
     return next(new AppErr("Invalid token", 401));
   }
+  console.log(2);
 
-  if (user.authTokenExpiresAt < Date.now()) {
-    return next(new AppErr("Token Expired !", 401));
-  }
+  // if (user.authTokenExpiresAt < Date.now()) {
+  //   return next(new AppErr("Token Expired !", 401));
+  // }
 
+  console.log("before create send ");
   creatSendToken(user, 200, res);
 });
 // ===========================VERIFY TOKEN BEFORE GETTING DATA=====================
@@ -130,6 +142,7 @@ exports.protect = catchAsync(async (req, res, next) => {
     // console.log("token get step 1.");
     // console.log(token);
   }
+  console.log(token);
   if (!token) {
     return next(
       new AppErr("You are not logged in , please login to get access", 401)
@@ -140,8 +153,10 @@ exports.protect = catchAsync(async (req, res, next) => {
   const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
   // console.log("token verified step 2.");
   //3) check if the user still exist
-  // console.log(decoded);
-  const currentUser = await User.findById(decoded.id);
+  console.log("after decode", decoded);
+  const currentUser = await User.findOne({ _id: decoded.id });
+
+  console.log(currentUser);
   if (!currentUser) {
     return next(new AppErr("User not exist now", 401));
   }
@@ -258,6 +273,7 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
 
 // ===========UPDATE PASSWORD for already login user=================================
 exports.updatePassword = catchAsync(async (req, res, next) => {
+  console.log("in update logged in user ");
   // 1)get user from collection.
   const user = await User.findById(req.user.id).select("+password");
 

@@ -56,16 +56,15 @@ exports.createAccount = catchAsync(async (req, res, next) => {
 });
 // ..............
 // Check balance
-exports.checkBalance = catchAsync(async (req, res, next) => {
+exports.checkBalance = catchAsync(async (req, res, next) => { 
   const data = await Accounts.findOne({
     accountNo: req.params.num,
   });
   if (!data) {
     return next(new AppErr("Account not exist",401));
-    ``;
   }
   //   console.log(data.userId, req.user._id);
-  if (req.user._id != data.userId) {
+  if (req.user._id.equals(data.userId) ) {
     return next(new AppErr("invalid account number",401));
   }
 

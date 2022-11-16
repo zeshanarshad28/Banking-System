@@ -14,7 +14,7 @@ exports.requestCheckbook = catchAsync(async (req, res, next) => {
 
   //   console.log(!account.userId.equals(req.user._id));
   if (!account.userId.equals(req.user._id)) {
-    return next(new AppError("Enter valid account no."));
+    return next(new AppError("Enter valid account no. that really belongs to you"));
   }
   let record = await Checkbook.findOne({
     accountNo: req.params.accountNo,
