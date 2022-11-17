@@ -128,7 +128,7 @@ exports.loginWithAuth = catchAsync(async (req, res, next) => {
   console.log("before create send ");
   creatSendToken(user, 200, res);
 });
-// ===========================VERIFY TOKEN BEFORE GETTING DATA=====================
+// -===========================VERIFY TOKEN BEFORE GETTING DATA=====================-
 exports.protect = catchAsync(async (req, res, next) => {
   // 1) Getting token and check if its there
   let token;
@@ -160,7 +160,7 @@ exports.protect = catchAsync(async (req, res, next) => {
   const currentUser = await User.findById(decoded.id);
   console.log("current userrrrr: ", currentUser);
   if (!currentUser) {
-    console.log("current user not found;;;;;");
+    console.log("current user not found=-~;;;;;");
     return next(new AppErr("User not exist now", 401));
   }
 
@@ -174,13 +174,13 @@ exports.protect = catchAsync(async (req, res, next) => {
   }
   //grant access to the protected route
   req.user = currentUser;
-  console.log("current user....." + currentUser);
+  // console.log("current user....." + currentUser);
   // console.log(currentUser);
   console.log("verification completed");
   next();
 });
 
-//================= Authorization=============
+//================= Authorization============
 //Restrict who can delete tour
 
 exports.restrictTo = (...roles) => {
@@ -291,8 +291,10 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
   // if so update password
   user.password = req.body.password;
   user.confirmPassword = req.body.confirmPassword;
+  console.log("-=-=-=-=-=-=-=-=--=");
   await user.save();
   // Log user in  , send jwt
   console.log("onnn end");
+
   creatSendToken(user, 200, res);
 });

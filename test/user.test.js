@@ -23,16 +23,23 @@ const sms = require("../utils/sms");
 
 const auth = rewire("../controllers/authControllers");
 const { describe } = require("mocha");
-const { findById } = require("../models/userModel");
+
 // const { afterEach } = require("mocha");
 
 describe("User", () => {
   var token;
 
   afterEach(() => {
+    // sandbox.restore();
+
+    console.log(
+      "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+    );
     app = rewire("../app");
-    sandbox.restore();
+    // sandbox.restore();
+    // sinon.restore();
   });
+
   before(() => {
     console.log(".........");
   });
@@ -113,6 +120,8 @@ describe("User", () => {
     });
   });
   context("Login User ", () => {
+    console.log("in login start");
+
     var sampleLogin = {
       email: "user@gmail.com",
       password: "+923056320218",
@@ -189,18 +198,20 @@ describe("User", () => {
     });
   });
   context("Update password==>", () => {
+    // beforeEach(() => {
+    //   sandbox.restore();
+    // });
     // sandbox.restore();
-    token =
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYzNzQ4YTQ5NjYyZGIyNDZjZGZjY2I5MSIsImlhdCI6MTY2ODY1OTk5MSwiZXhwIjoxNjY4NzQ2MzkxfQ.tYt0XABCf5Godw4WcOtSMudwMCA_tE4cvg_DJpW5fGo";
+    // token =
+    //   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYzNzQ4YTQ5NjYyZGIyNDZjZGZjY2I5MSIsImlhdCI6MTY2ODY2NDQ5OCwiZXhwIjoxNjY4NzUwODk4fQ.pJiWK4yhFZ5ykTbscJlfr8Ee9HDxHNzAFL60JNqRvhU";
     let data = {
-      currentPassword: "abc",
       password: "Zeeshan123$",
       confirmPassword: "Zeeshan123$",
     };
     // const passwordStub = sandbox
     //   .stub(mongoose.Query.prototype, "select")
     //   .resolves(user);
-    const currentUserStub = sandbox.stub(User, "findById").returns(user);
+    const protectStub = sandbox.stub(User, "findById").returns(user);
 
     const userSave = sandbox.stub(user, "save").resolves(user);
 
@@ -221,9 +232,39 @@ describe("User", () => {
         .set("authorization", `Bearer ${token}`)
         .expect(200)
         .end((err, response) => {
-          // expect(passwordStub).to.have.been.calledOnce;
-          expect(currentUserStub).to.have.been.calledTwice;
+          expect(protectStub).to.have.been.calledTwice;
+          expect(userSave).to.have.been.calledOnce;
+
           expect(response.status).to.be.equal(200);
+          // expect(response.data.user).to.be.equal(data);
+
+          //   expect(tokenExpiryStub).to.have.been.calledOnce;
+
+          done();
+        });
+    });
+  });
+  context("Delete Me==>", () => {
+    // sandbox.restore();
+    // sinon.restore();
+    User.findById.restore();
+    console.log("in delete me start");
+    const protectStub = sinon.stub(User, "findById").returns(user);
+    const findUpdateStub = sandbox
+      .stub(User, "findByIdAndUpdate")
+      .returns(user);
+    it("should successfully delete login user", (done) => {
+      let deleteMe = request(app)
+        .delete("/api/v1/user/deleteMe")
+        .send()
+        .set("Content-Type", "application/json")
+        .set("authorization", `Bearer ${token}`)
+        .expect(200)
+        .end((err, response) => {
+          expect(protectStub).to.have.been.calledThrice;
+          expect(findUpdateStub).to.have.been.calledOnce;
+
+          expect(response.status).to.be.equal(204);
           // expect(response.data.user).to.be.equal(data);
 
           //   expect(tokenExpiryStub).to.have.been.calledOnce;
