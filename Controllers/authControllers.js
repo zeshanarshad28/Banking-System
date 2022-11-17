@@ -134,11 +134,13 @@ exports.protect = catchAsync(async (req, res, next) => {
   let token;
   console.log("verifying token....");
   // console.log(req.headers.authorization);
+  console.log(req.headers.authorization);
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith("Bearer")
   ) {
     token = req.headers.authorization.split(" ")[1];
+    console.log("token--------" + token);
     // console.log("token get step 1.");
     // console.log(token);
   }
@@ -156,10 +158,12 @@ exports.protect = catchAsync(async (req, res, next) => {
   //3) check if the user still exist
   console.log("after decode", decoded);
   const currentUser = await User.findById(decoded.id);
-  console.log(currentUser);
+  console.log("current userrrrr: ", currentUser);
   if (!currentUser) {
+    console.log("current user not found;;;;;");
     return next(new AppErr("User not exist now", 401));
   }
+
   // console.log("User exist step 3.");
 
   //check if the user changed the password after the token is issued
@@ -168,7 +172,7 @@ exports.protect = catchAsync(async (req, res, next) => {
       new AppErr("User recently changed password please login again!", 401)
     );
   }
-  //grant access to the protected rout
+  //grant access to the protected route
   req.user = currentUser;
   console.log("current user....." + currentUser);
   // console.log(currentUser);
@@ -276,7 +280,8 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
 exports.updatePassword = catchAsync(async (req, res, next) => {
   console.log("in update logged in user ");
   // 1)get user from collection.
-  const user = await User.findById(req.user.id).select("+password");
+  // const user = await User.findById(req.user.id).select("+password"); <<------------
+  const user = await User.findById(req.user.id); //<<=============
 
   console.log("######");
   // check if posted current password is correct
