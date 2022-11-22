@@ -33,6 +33,7 @@ const creatSendToken = (user, statusCode, res) => {
   res.cookie("jwt", token, cookieOptions);
   user.password = undefined; /// hide the password to show in response
   //   console.log(user);
+  console.log("token senttt............");
   res.status(statusCode).json({
     status: "success",
     token,
@@ -77,7 +78,8 @@ exports.login = catchAsync(async (req, res, next) => {
     return next(new AppErr("please provide email and password", 400));
   }
   // check if user exist and password is correct
-  const user = await User.findOne({ email }).select("+password");
+  const user = await User.findOne({ email }).select("+password"); //------------------<<<
+  // const user = await User.findOne({ email }); //=============<<
 
   if (!user || !(await user.correctPassword(password, user.password))) {
     return next(new AppErr("Incorrect email or password", 401));
