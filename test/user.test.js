@@ -39,7 +39,7 @@ describe("User", () => {
 
     app = rewire("../app");
     // sandbox.restore();
-    sinon.restore();
+    // sinon.restore();
     // User.findById.restore();
     // User.findByIdAndUpdate.restore();
     console.log(
@@ -72,62 +72,64 @@ describe("User", () => {
     password: "$2b$12$eRg.ClNU3ELEYx0nWQX4yen4vZ5QLwWYOoDr1kvFqq/j0BrDQU7oS",
   };
   let url = "abcd";
-  context("signup", () => {
-    it("should successfully SignUp", (done) => {
-      let createStub = sandbox.stub(User, "create").resolves(user);
-      let mailStub = sandbox
-        .stub(Email.prototype, "sendWelcome")
-        .returns("fake Email send successfully");
-      // .stub({ ...new Email(user, url) }, "sendWelcome")
-      //   a = Email.__set__("sendWelcome", () => {
-      //     console.log("fake mail.....");
-      //   });
-      //   let mailerStub = sandbox.stub(Email, a).callsFake(() => {
-      //     console.log("in return");
-      //     return "This is fake mailer";
-      //   });
+  // context("signup", () => {
+  //   it("should successfully SignUp", (done) => {
+  //     let createStub = sandbox.stub(User, "create").resolves(user);
+  //     let mailStub = sandbox
+  //       .stub(Email.prototype, "sendWelcome")
+  //       .returns("fake Email send successfully");
+  //     // .stub({ ...new Email(user, url) }, "sendWelcome")
+  //     //   a = Email.__set__("sendWelcome", () => {
+  //     //     console.log("fake mail.....");
+  //     //   });
+  //     //   let mailerStub = sandbox.stub(Email, a).callsFake(() => {
+  //     //     console.log("in return");
+  //     //     return "This is fake mailer";
+  //     //   });
 
-      // .stub(Email, "sendWelcome")
-      //   let messageStub = sandbox
-      //     .stub(sms, "message")
-      //     .returns("fake msg send successfully");
+  //     // .stub(Email, "sendWelcome")
+  //     //   let messageStub = sandbox
+  //     //     .stub(sms, "message")
+  //     //     .returns("fake msg send successfully");
 
-      //   console.log("mailer stub: ", mailerStub);
-      //   console.log("msg stub: ", messageStub);
+  //     //   console.log("mailer stub: ", mailerStub);
+  //     //   console.log("msg stub: ", messageStub);
 
-      // Email.__set__("sendWelcome",mailerStub)
-      let returnUser = request(app)
-        .post("/api/v1/user/signup")
-        .send(sampleUser)
-        .set("Content-Type", "application/json")
-        .expect(201)
-        .end((err, response) => {
-          expect(createStub).to.have.been.calledOnce;
-          //   expect(mailerStub()).to.be.equal("This is fake mailer");
-          //   expect(messageStub).to.be.calledOnce;
-          //   expect(messageStub()).to.have.been.calledWithMatch("Congratulations your account has been created successfully",sampleUser.phoneNo)
+  //     // Email.__set__("sendWelcome",mailerStub)
+  //     let returnUser = request(app)
+  //       .post("/api/v1/user/signup")
+  //       .send(sampleUser)
+  //       .set("Content-Type", "application/json")
+  //       .expect(201)
+  //       .end((err, response) => {
+  //         expect(createStub).to.have.been.calledOnce;
+  //         expect(mailStub).to.be.calledOnce;
 
-          expect(err).to.be.null;
-          expect(response.body.data.user)
-            .to.have.property("name")
-            .to.be.equal("user");
-          expect(mailStub).has.been.calledOnce;
-          //   expect(messageStub).has.been.calledOnce;
+  //         // expect(mailStub).to.be.equal("fake Email send successfully");
+  //         // expect(messageStub).to.be.calledOnce;
+  //         //   expect(messageStub()).to.have.been.calledWithMatch("Congratulations your account has been created successfully",sampleUser.phoneNo)
 
-          //   expect(createStub).has.been.calledOnce;
+  //         expect(err).to.be.null;
+  //         expect(response.body.data.user)
+  //           .to.have.property("name")
+  //           .to.be.equal("user");
+  //         expect(mailStub).has.been.calledOnce;
+  //         //   expect(messageStub).has.been.calledOnce;
 
-          expect(response.body.data.user.name).to.be.equal(sampleUser.name);
-          expect(response.body.data.user.email).to.be.equal(sampleUser.email);
+  //         //   expect(createStub).has.been.calledOnce;
 
-          expect(response.body.data.user.phone).to.be.equal(sampleUser.phone);
-          if (err) {
-            console.log("innnnn erorrrrr");
-            throw err;
-          }
-          done();
-        });
-    });
-  });
+  //         expect(response.body.data.user.name).to.be.equal(sampleUser.name);
+  //         expect(response.body.data.user.email).to.be.equal(sampleUser.email);
+
+  //         expect(response.body.data.user.phone).to.be.equal(sampleUser.phone);
+  //         if (err) {
+  //           console.log("innnnn erorrrrr");
+  //           throw err;
+  //         }
+  //         done();
+  //       });
+  //   });
+  // });
   context("Login User ", () => {
     console.log("in login start");
 
@@ -167,9 +169,9 @@ describe("User", () => {
         .expect(200)
         .end((err, response) => {
           expect(loginStub).to.have.been.calledTwice;
+          expect(correctPasswordStub).to.be.calledOnce;
           expect(correctPasswordStub()).to.be.equal("password is correct");
           // expect(correctPasswordStub).to.be.calledOnce;
-          expect(correctPasswordStub).to.be.calledTwice;
 
           expect(response.statusCode).to.be.equal(200);
           expect(response.body).to.have.ownProperty("token");
@@ -177,11 +179,13 @@ describe("User", () => {
           token = response.body.token;
           // sandbox.restore();
           // sinon.restore();
+          loginStub.restore();
+          correctPasswordStub.restore();
           done();
         });
     });
     it("should successfully login with 2 way authentication", (done) => {
-      let loginStub = sandbox
+      let loginStub2 = sandbox
         .stub(mongoose.Query.prototype, "findOne")
         .callsFake(() => {
           return user;
@@ -189,11 +193,11 @@ describe("User", () => {
       let hashingStub = sandbox.stub(bcrypt, "compare").callsFake(() => {
         return "Token passed";
       });
-      let tokenExpiryStub = sandbox
-        .stub(user, "authTokenExpiresAt")
-        .callsFake(() => {
-          return 5;
-        });
+      // let tokenExpiryStub = sandbox
+      //   .stub(user, "authTokenExpiresAt")
+      //   .callsFake(() => {
+      //     return 5;
+      //   });
       var date = new Date();
       let dateStub = sandbox.stub(Date, "now").callsFake(() => {
         return 2;
@@ -204,14 +208,17 @@ describe("User", () => {
         .send({ email: "user@gmail.com", authToken: "abc" })
         .expect(200)
         .end((err, response) => {
-          expect(loginStub).to.have.been.calledOnce;
-          //   expect(tokenExpiryStub).to.have.been.calledOnce;
+          expect(loginStub2).to.have.been.calledOnce;
+          // expect(tokenExpiryStub).to.have.been.calledOnce; //-----------------issue
+          expect(hashingStub).to.have.been.calledOnce;
 
           //   expect(tokenExpiryStub()).to.be.equal("abc");
           expect(response.statusCode).to.be.equal(200);
           expect(response.body).to.have.ownProperty("token");
           expect(response.body.data.user.name).to.be.equal(logedInUser.name);
-
+          hashingStub.restore();
+          dateStub.restore();
+          loginStub2.restore();
           done();
         });
     });
@@ -223,11 +230,11 @@ describe("User", () => {
     //   sinon.restore();
     // });
     // beforeEach(() => {
-    //   sandbox.restore();
+    sandbox.restore();
     // });
     // sandbox.restore();
     // token =
-    //   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYzNzQ4YTQ5NjYyZGIyNDZjZGZjY2I5MSIsImlhdCI6MTY2ODY2NDQ5OCwiZXhwIjoxNjY4NzUwODk4fQ.pJiWK4yhFZ5ykTbscJlfr8Ee9HDxHNzAFL60JNqRvhU";
+    //   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYzNzQ4YTQ5NjYyZGIyNDZjZGZjY2I5MSIsImlhdCI6MTY2OTEyNjk3MCwiZXhwIjoxNjY5MjEzMzcwfQ.OsFW_awLYp7qrOXeGOj-K1pZDFA5OZSHL4GWD6ZYJYo";
     let data = {
       password: "Zeeshan123$",
       confirmPassword: "Zeeshan123$",
@@ -237,7 +244,7 @@ describe("User", () => {
     //   .callsFake(() => {
     //   return user;
     // });
-    const protectStub = sandbox.stub(User, "findById").returns(user);
+    const protectStub1 = sandbox.stub(User, "findById").returns(user);
 
     const userSave = sandbox.stub(user, "save").resolves(user);
 
@@ -258,28 +265,30 @@ describe("User", () => {
         .set("authorization", `Bearer ${token}`)
         .expect(200)
         .end((err, response) => {
-          // expect(protectStub).to.have.been.calledTwice; //--------------------------<<<
+          expect(protectStub1).to.have.been.calledTwice; //--------------------------<<<
           expect(userSave).to.have.been.calledOnce;
 
           expect(response.status).to.be.equal(200);
           // expect(response.data.user).to.be.equal(data);
 
           //   expect(tokenExpiryStub).to.have.been.calledOnce;
+          protectStub1.restore();
+          userSave.restore();
 
           done();
         });
     });
   });
   context("Delete Me==>", () => {
-    sinon.restoreObject(User);
+    // sinon.restoreObject(User);
     // before(() => {
     //   sinon.restore();
     // });
-    // sandbox.restore();
+    sandbox.restore();
     // sinon.restore();
     // User.findById.restore();
     console.log("in delete me start");
-    const protectStub = sandbox.stub(User, "findById").returns(user);
+    const protectStub2 = sandbox.stub(User, "findById").returns(user);
     const findUpdateStub = sandbox
       .stub(User, "findByIdAndUpdate")
       .returns(user);
@@ -291,52 +300,53 @@ describe("User", () => {
         .set("authorization", `Bearer ${token}`)
         .expect(200)
         .end((err, response) => {
-          // expect(protectStub).to.have.been.calledOnce; //<<< 0 times-----------------------
-          // expect(findUpdateStub).to.have.been.calledOnce; //<<---0 times---------
+          expect(protectStub2).to.have.been.calledOnce; //<<< 0 times-----------------------
+          expect(findUpdateStub).to.have.been.calledOnce; //<<---0 times---------
           expect(response.status).to.be.equal(204);
           // expect(response.data.user).to.be.equal(data);
 
           //   expect(tokenExpiryStub).to.have.been.calledOnce;
-
+          protectStub2.restore();
+          findUpdateStub.restore();
           done();
         });
     });
   });
-  // // // block user.
-  context("Block User==>", () => {
-    sinon.restoreObject(User);
+  // // // // block user.
+  // context("Block User==>", () => {
+  //   sinon.restoreObject(User);
 
-    // before(() => {
-    //   sandbox.restore();
-    // });
-    // sandbox.restore();
-    // sinon.restore();
-    // User.findById.restore();
-    // User.findByIdAndUpdate.restore();
+  //   // before(() => {
+  //   //   sandbox.restore();
+  //   // });
+  //   // sandbox.restore();
+  //   // sinon.restore();
+  //   // User.findById.restore();
+  //   // User.findByIdAndUpdate.restore();
 
-    const id = 12345678;
-    console.log("in Block User");
-    const protectStub = sandbox.stub(User, "findById").returns(user);
-    const findUpdateStub = sandbox
-      .stub(User, "findByIdAndUpdate")
-      .returns(user);
-    it("should successfully block user", (done) => {
-      let blockUser = request(app)
-        .patch(`/api/v1/user/blockUser/${id}`)
-        .send(user)
-        .set("Content-Type", "application/json")
-        .set("authorization", `Bearer ${token}`)
-        .expect(200)
-        .end((err, response) => {
-          // expect(protectStub).to.have.been.calledOnce;----// 4 times
-          // expect(findUpdateStub).to.have.been.calledOnce; //----Twise
-          expect(response.status).to.be.equal(200);
-          done();
-        });
-    });
-  });
+  //   const id = 12345678;
+  //   console.log("in Block User");
+  //   const protectStub3 = sandbox.stub(User, "findById").returns(user);
+  //   const findUpdateStub2 = sandbox
+  //     .stub(User, "findByIdAndUpdate")
+  //     .returns(user);
+  //   it("should successfully block user", (done) => {
+  //     let blockUser = request(app)
+  //       .patch(`/api/v1/user/blockUser/${id}`)
+  //       .send(user)
+  //       .set("Content-Type", "application/json")
+  //       .set("authorization", `Bearer ${token}`)
+  //       .expect(200)
+  //       .end((err, response) => {
+  //         // expect(protectStub3).to.have.been.calledOnce;----// 4 times
+  //         // expect(findUpdateStub).to.have.been.calledOnce; //----Twise
+  //         expect(response.status).to.be.equal(200);
+  //         done();
+  //       });
+  //   });
+  // });
 
-  //// Get single User
+  // Get single User
   // context("Get Single User  User==>", () => {
   //   // sandbox.restore();
   //   // sandbox.resetHistory();
@@ -344,6 +354,7 @@ describe("User", () => {
   //   // sandbox.reset();
   //   // after(() => {
   //   // sinon.restoreObject(User);
+  //   // sinon.restoreObject(User.prototype);
 
   //   // });
   //   // before(() => {
@@ -357,7 +368,7 @@ describe("User", () => {
 
   //   const id = 12345678;
   //   console.log("in Get User User");
-  //   const protectStub = sandbox.stub(User, "findById").returns(user);
+  //   const protectStub4 = sandbox.stub(User, "findById").returns(user);
   //   // let selectStub = sandbox
   //   //   .stub(mongoose.Query.prototype, "select")
   //   //   .callsFake(() => {
@@ -372,7 +383,7 @@ describe("User", () => {
   //       .set("authorization", `Bearer ${token}`)
   //       .expect(200)
   //       .end((err, response) => {
-  //         expect(protectStub).to.have.been.calledOnce;
+  //         expect(protectStub4).to.have.been.calledOnce;
   //         expect(findUpdateStub).to.have.been.calledOnce;
   //         expect(response.status).to.be.equal(200);
   //         done();
