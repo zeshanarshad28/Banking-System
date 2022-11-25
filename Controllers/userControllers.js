@@ -284,6 +284,7 @@ exports.unblockUser = catchAsync(async (req, res, next) => {
 });
 //  Request ATM card
 exports.requestAtmCard = catchAsync(async (req, res, next) => {
+  console.log("In request ATM card");
   const oldCard = await AtmCard.findOne({
     userId: req.user._id,
     active: true,

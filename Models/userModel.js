@@ -118,6 +118,8 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.pre("save", async function (next) {
+  console.log("in save1 pre hooooooooooooooooooooooooookkkk");
+
   //only run this function if password id actually modified
   if (!this.isModified("password")) return next();
   // password validation using Regex
@@ -185,6 +187,8 @@ userSchema.methods.creatPasswordResetToken = function () {
 };
 // update "passwordChangedAt value in DB whenever we update password "
 userSchema.pre("save", function (next) {
+  console.log("in save2 pre hooooooooooooooooooooooooookkkk");
+
   if (!this.isModified("password") || this.isNew) return next();
   this.passwordChangedAt = Date.now() - 1000; //here -1000 mili seconds is to make sure that it will not creat any problem in login as some times that gets this
   next();
@@ -192,6 +196,7 @@ userSchema.pre("save", function (next) {
 
 // Middleware to only get active=true users
 userSchema.pre(/^find/, function (next) {
+  console.log("in ^find pre hooooooooooooooooooooooooookkkk");
   // here "this" points to the current property`
   this.find({ active: true });
   next();

@@ -3,9 +3,9 @@ const AppError = require("../utils/appError");
 const handlersFactory = require("./handlersFactory");
 const ApiFeatures = require("../utils/apiFeatures");
 const Accounts = require("../models/accountsModel");
-const Interest=require("../models/interestModel")
+const Interest = require("../models/interestModel");
 let User = require("./../models/userModel");
-const atmCardModel = require("../models/atmCardModel");
+const AtmCard = require("../models/atmCardModel");
 const { message } = require("../utils/sms");
 const WithdrawModel = require("../models/withdrawModel");
 const Deposite = require("../models/depositsModel");
@@ -84,12 +84,12 @@ exports.withdrawMoneyByAtmCard = catchAsync(async (req, res, next) => {
   }
   console.log("amount greater");
 
-  const atmCard = await atmCardModel.findOne({
+  const atmCardd = await AtmCard.findOne({
     atmCardNo: req.body.atmCardNo,
     active: true,
     issued: true,
   });
-  if (!atmCard) {
+  if (!atmCardd) {
     return next(new AppError("Invalid ATM card no."));
   }
   //   create withdrawl record
@@ -283,10 +283,10 @@ exports.transactionReport = catchAsync(async (req, res, next) => {
   const user = await Accounts.findOne({
     accountNo: req.params.accountNo,
   });
-  if(!user){
-    return next(new AppError("Invalid account no,",401))
+  if (!user) {
+    return next(new AppError("Invalid account no,", 401));
   }
-  let userId=user.userId
+  let userId = user.userId;
   if (req.user.role != "admin") {
     if (!req.user._id.equals(userId)) {
       next(new AppError("Wrong account number", 401));
@@ -401,7 +401,7 @@ exports.addMoney = catchAsync(async (req, res, next) => {
     method: "card_payment",
     // description: req.params.description,
   });
-  message(`${req.params.amount} is added to your account.`, phoneNo)
+  message(`${req.params.amount} is added to your account.`, phoneNo);
 
   res.status(200).json({
     status: "success",
@@ -456,7 +456,7 @@ exports.interestUpdate = catchAsync(async (req, res, next) => {
     // console.log(el.amount);
     allAmounts.push(el.amount);
   });
-  let profit=0;
+  let profit = 0;
   let index;
   let difference;
   let length = allAmounts.length;
@@ -470,58 +470,60 @@ exports.interestUpdate = catchAsync(async (req, res, next) => {
     totalWithdraw = totalWithdraw - allAmounts[i];
     // allAmounts.shift();
   }
-  let newDocs=[...allDepositesDocs];
+  let newDocs = [...allDepositesDocs];
   // console.log(newDocs)
-  for(let i=0; i<=index; i++){
-newDocs.shift();
+  for (let i = 0; i <= index; i++) {
+    newDocs.shift();
   }
-  let profitPercentagePerDay=process.env.InterestPercentagePerMonth/30
-let monthOfLastRemovingDoc=allDepositesDocs[index].date.getMonth()
-let leftOverProfit=0
-if(monthOfLastRemovingDoc<Date.now().getMonth){
-leftOverProfit=allDepositesDocs[index].date.getDay()*profitPercentagePerDay
-}
-  for(let i=0; i<newDocs.length ; i++){
-    let document=newDocs[i]
-    let date=document.date
-    let month=date.getMonth()
-    let day=date.getDay()
-    let currentDate=new Date()
-    console.log(currentDate)
-    let currentMonth=currentDate.getMonth()
-    
-  if (month<currentMonth ){
-    // later correct this logic
-  profit=profit+(day*profitPercentagePerDay)+leftOverProfit
-   }
+  let profitPercentagePerDay = process.env.InterestPercentagePerMonth / 30;
+  let monthOfLastRemovingDoc = allDepositesDocs[index].date.getMonth();
+  let leftOverProfit = 0;
+  if (monthOfLastRemovingDoc < Date.now().getMonth) {
+    leftOverProfit =
+      allDepositesDocs[index].date.getDay() * profitPercentagePerDay;
   }
-  if(profit>0){
-    
-    let {balance}=await Accounts.findOne({
-      accountNo:accountNo
-    })
-    let interestCreate=await Interest.create({
-      accountNo:accountNo,
-      amount:profit
-    })
-    if(interestCreate){
-      console.log("Interst created")
+  for (let i = 0; i < newDocs.length; i++) {
+    let document = newDocs[i];
+    let date = document.date;
+    let month = date.getMonth();
+    let day = date.getDay();
+    let currentDate = new Date();
+    console.log(currentDate);
+    let currentMonth = currentDate.getMonth();
+
+    if (month < currentMonth) {
+      // later correct this logic
+      profit = profit + day * profitPercentagePerDay + leftOverProfit;
+    }
+  }
+  if (profit > 0) {
+    let { balance } = await Accounts.findOne({
+      accountNo: accountNo,
+    });
+    let interestCreate = await Interest.create({
+      accountNo: accountNo,
+      amount: profit,
+    });
+    if (interestCreate) {
+      console.log("Interst created");
     }
 
-await Accounts.findOneAndUpdate({accountNo:accountNo},{
-  balance:balance+profit
-})
-}
+    await Accounts.findOneAndUpdate(
+      { accountNo: accountNo },
+      {
+        balance: balance + profit,
+      }
+    );
+  }
 
   // console.log(newDocs)
-
 
   res.status(200).json({
     status: "success",
     message: "interest updated ! ",
     allAccounts,
     totalWithdraw,
-    // allDepositesDocs, 
+    // allDepositesDocs,
     // allAmounts,
   });
 });

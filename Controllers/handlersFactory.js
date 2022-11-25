@@ -54,11 +54,12 @@ exports.creatOne = (Model) =>
 
 exports.getOne = (Model, popOptions) =>
   catchAsync(async (req, res, next) => {
+    console.log("get single user hittttttttttttttt;;;;;;;;;;;;;;");
     let query = await Model.findOne({ _id: req.params.id });
     if (popOptions) query = query.populate(popOptions);
     const doc = await query;
     if (!doc) {
-      return next(new AppError("No Document Found With Given Id ", 404));
+      return next(new AppErr("No Document Found With Given Id ", 404));
     }
 
     res.json({

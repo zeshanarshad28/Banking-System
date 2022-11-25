@@ -133,6 +133,7 @@ exports.loginWithAuth = catchAsync(async (req, res, next) => {
 // -===========================VERIFY TOKEN BEFORE GETTING DATA=====================-
 exports.protect = catchAsync(async (req, res, next) => {
   // 1) Getting token and check if its there
+  console.log("innn protecttttttttttttttttt");
   let token;
   console.log("verifying token....");
   // console.log(req.headers.authorization);
@@ -187,6 +188,7 @@ exports.protect = catchAsync(async (req, res, next) => {
 
 exports.restrictTo = (...roles) => {
   return (req, res, next) => {
+    console.log("Checking restrictionzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
     // console.log(req.user);
     if (!roles.includes(req.user.role)) {
       return next(
@@ -233,6 +235,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
       message: "Token sent to email",
     });
   } catch (err) {
+    console.log("innnnnnnnnn Catchhhhhhhhhhhhhh");
     console.log(err);
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
@@ -249,11 +252,15 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 
 // ===================RESET PASSWORD===============================
 exports.resetPassword = catchAsync(async (req, res, next) => {
+  console.log("in Reset password....");
   // 1) Get user based on the token
   const hashedToken = crypto
     .createHash("sha256")
     .update(req.params.token)
     .digest("hex");
+  console.log(
+    "@#$%$#@$#@$#@$#@$##@@@@@@@@@@@@@@@@@@@@@@@@#######################"
+  );
   const user = await User.findOne({
     passwordResetToken: hashedToken,
     passwordResetExpires: { $gt: Date.now() },
